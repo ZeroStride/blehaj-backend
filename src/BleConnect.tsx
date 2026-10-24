@@ -1,36 +1,46 @@
 /// <reference types="web-bluetooth" />
 import { useMachine } from "@xstate/react"
-import { assign, setup } from "xstate"
+import { assign, enqueueActions, setup } from "xstate"
 
 export interface BleConnectConfiguration {
-  service_uuid: BluetoothServiceUUID
-  characteristic_uuid: BluetoothCharacteristicUUID
+  readonly serviceUuid: BluetoothServiceUUID
+  readonly characteristicUuid: BluetoothCharacteristicUUID
 }
 
 interface BleConnectContext {
-  service_uuid: BluetoothServiceUUID
-  characteristic_uuid: BluetoothCharacteristicUUID
-  device: BluetoothDevice
-  server: BluetoothRemoteGATTServer
-  service: BluetoothRemoteGATTService
-  characteristic: BluetoothRemoteGATTCharacteristic
+  readonly serviceUuid: BluetoothServiceUUID
+  readonly characteristicUuid: BluetoothCharacteristicUUID
+  device: BluetoothDevice | null
+  server: BluetoothRemoteGATTServer | null
+  service: BluetoothRemoteGATTService | null
+  characteristic: BluetoothRemoteGATTCharacteristic | null
+  error: Error | null
 }
 
 const handshake = setup({
   types: {
-    context: {} as Partial<BleConnectContext>,
+    context: {} as BleConnectContext,
     input: {} as BleConnectConfiguration,
     output: {} as {
-      characteristic: BluetoothRemoteGATTCharacteristic | undefined
+      readonly characteristic: BluetoothRemoteGATTCharacteristic | null
+      readonly error: Error | null
     },
   },
 }).createMachine({
-  context: ({ input }) => ({
-    service_uuid: input.service_uuid,
-    characteristic_uuid: input.characteristic_uuid,
-  }),
+  context: ({ input }) => {
+    return {
+      serviceUuid: input.serviceUuid,
+      characteristicUuid: input.characteristicUuid,
+      device: null,
+      server: null,
+      service: null,
+      characteristic: null,
+      error: null,
+    }
+  },
   output: ({ context }) => ({
     characteristic: context.characteristic,
+    error: context.error,
   }),
   id: "handshake",
   initial: "ready",
@@ -85,6 +95,12 @@ const handshake = setup({
     hist: { type: "history" },
     error: {
       type: "final",
+      entry: enqueueActions(({ enqueue, event }) => {
+        console.error(`Error in state ${event.type}: `, event.error)
+        enqueue.assign({
+          error: event.error,
+        })
+      }),
     },
     success: {
       type: "final",
@@ -93,13 +109,13 @@ const handshake = setup({
 })
 
 export default function BleConnect({
-  service_uuid,
-  characteristic_uuid,
+  serviceUuid,
+  characteristicUuid,
 }: BleConnectConfiguration) {
   const [state, send] = useMachine(handshake, {
     input: {
-      service_uuid: service_uuid,
-      characteristic_uuid: characteristic_uuid,
+      serviceUuid: serviceUuid,
+      characteristicUuid: characteristicUuid,
     },
   })
 
@@ -107,7 +123,7 @@ export default function BleConnect({
     send({ type: "user.initiate" })
     navigator.bluetooth
       .requestDevice({
-        filters: [{ services: [state.context.service_uuid] }],
+        filters: [{ services: [state.context.serviceUuid] }],
       })
       .then((device) => {
         send({ type: "system.success", device: device })
@@ -116,15 +132,15 @@ export default function BleConnect({
       })
       .then((server) => {
         send({ type: "system.success", server: server })
-        console.log(`Connected, getting service ${state.context.service_uuid}`)
-        return server?.getPrimaryService(state.context.service_uuid)
+        console.log(`Connected, getting service ${state.context.serviceUuid}`)
+        return server?.getPrimaryService(state.context.serviceUuid)
       })
       .then((service) => {
         send({ type: "system.success", service: service })
         console.log(
-          `Service found ${service}, connecting to characteristic ${state.context.characteristic_uuid}`
+          `Service found ${service}, connecting to characteristic ${state.context.characteristicUuid}`
         )
-        return service?.getCharacteristic(state.context.characteristic_uuid)
+        return service?.getCharacteristic(state.context.characteristicUuid)
       })
       .then((characteristic) => {
         send({ type: "system.success", characteristic: characteristic })
@@ -133,23 +149,28 @@ export default function BleConnect({
       })
       .catch((error) => {
         send({ type: "system.error", error: error })
-        console.error(`Something went wrong. ${error}`)
       })
   }
 
   return (
-    <>
-      <div className="text-3xl">configure {state.context.service_uuid}</div>
+    <div className="flex flex-col gap-x-4 pt-2">
       {state.value === "ready" ? (
         <button
-          className="text-xl text-blue-500 px-6 py-2 bg-blue-100 rounded-xl"
+          className="text-xl text-violet-500 px-6 py-2 bg-blue-100 rounded-xl"
           onClick={connect}
         >
           Connect
         </button>
       ) : (
-        <div className="text-3xl">{state.value.toString()}</div>
+        <div className="px-2 py-1 rounded-xl bg-zinc-800 shadow-lg outline outline-violet/5">
+          <p className="text-3xl text-violet-50">
+            State: {state.value.toString()}
+          </p>
+          <p className="text-s text-rose-300">
+            {state.output?.error?.toString()}
+          </p>
+        </div>
       )}
-    </>
+    </div>
   )
 }
