@@ -1,6 +1,7 @@
 {
   "name": "blehaj-backend",
   "version": "1.0.50",
+  "license": "BSD-3-Clause-Clear",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "bun run --watch src/index.ts",
