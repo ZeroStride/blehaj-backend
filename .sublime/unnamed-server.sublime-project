@@ -1,34 +1,22 @@
 {
-    "folders": [
-        {
-            "binary_file_patterns": [
-                "bun.lock",
-                "server"
-            ],
-            "folder_exclude_patterns": [
-                "node_modules"
-            ],
-            "file_exclude_patterns": [
-                "server"
-            ],
-            "path": ".."
-        }
-    ],
-    "build_systems": [],
-    "settings": {
-        "lsp_format_on_paste": true,
-        "lsp_format_on_save": true,
-        "lsp_code_actions_on_save": {
-            "source.organizeImports": true, // LSP-tsgo
-        },
-        "LSP-tsgo": {
-            "settings": {
-                "js/ts.format.semicolons": "remove",
-                "js/ts.preferences.quoteStyle": "double",
-            }
-        },
-        "LSP-json": {
-            "settings": {}
-        }
+  "folders": [
+    {
+      "binary_file_patterns": ["bun.lock", "server"],
+      "folder_exclude_patterns": ["node_modules"],
+      "file_exclude_patterns": ["server"],
+      "path": "..",
     },
+  ],
+  "build_systems": [],
+  "settings": {
+    "lsp_code_actions_on_save": {
+      "source.organizeImports": true, // LSP-tsgo
+    },
+    "LSP-tsgo": {
+      "settings": {},
+    },
+    "LSP-json": {
+      "settings": {},
+    },
+  },
 }
