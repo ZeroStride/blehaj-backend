@@ -96,17 +96,10 @@ export default function BleConnect({
   onCharacteristic,
   onError,
 }: BleConnectConfiguration) {
-  const [state, send, actor] = useMachine(handshake, {
+  const [state, send] = useMachine(handshake, {
     input: {
       serviceUuid,
       characteristicUuid,
-    },
-  })
-
-  actor.subscribe({
-    error: (error) => onError,
-    complete: () => {
-      onCharacteristic?.call(null, state.output!)
     },
   })
 
@@ -129,7 +122,10 @@ export default function BleConnect({
         return service?.getCharacteristic(state.context.characteristicUuid)
       })
       .then((characteristic) => {
-        send({ type: "system.success", characteristic })
+        onCharacteristic?.call(null, characteristic!)
+      })
+      .catch((error) => {
+        onError?.call(null, error)
       })
   }
 

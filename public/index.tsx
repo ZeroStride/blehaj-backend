@@ -1,13 +1,13 @@
 /// <reference types="web-bluetooth" />
-import Layout from "@public/layouts"
-import BleConnect from "@server/BleConnect"
-
 import { useMachine } from "@xstate/react"
 import { Scanner } from "@yudiel/react-qr-scanner"
 import { createRoot } from "react-dom/client"
 import { parse as parseUuid } from "uuid"
 import { setup, types } from "xstate"
 import { z } from "zod"
+
+import BleConnect from "@components/BleConnect"
+import Layout from "@public/layouts"
 
 interface AppContext {
   characteristicUuid: string | null
@@ -48,8 +48,8 @@ const appMachine = setup({
         }),
         "internal.configured": { target: "configured" },
       },
-      entry: (context, enq) => {
-        if (context.context.serviceUuid && context.context.characteristicUuid) {
+      entry: ({ context }, enq) => {
+        if (context.serviceUuid && context.characteristicUuid) {
           enq.raise({ type: "internal.configured" })
         }
       },
@@ -77,11 +77,11 @@ function App() {
 
   const [app, send] = useMachine(appMachine, {
     input: {
+      characteristicUuid: CONFIGURATION_CHARACTERISTIC_UUID,
       serviceUuid:
         window.location.pathname.split("/")[1] ||
         new URLSearchParams(window.location.search).get("uuid") ||
         undefined,
-      characteristicUuid: CONFIGURATION_CHARACTERISTIC_UUID,
     },
   })
 
@@ -138,9 +138,20 @@ function App() {
         </div>
       )
     case "query_gatt":
-      app.context.characteristic?.readValue().then((value) => {
-        console.log(value)
-      })
+      app.context.characteristic
+        ?.readValue()
+        .then((value) => {
+          const request = new Request("/api/configure", {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/blehaj",
+            },
+            body: value.buffer as BodyInit,
+          })
+          return fetch(request)
+        })
+        .then((response) => console.log(response))
       return (
         <div className="px-2 py-1 rounded-xl bg-zinc-800 shadow-lg outline outline-violet/5">
           <p className="text-3xl text-violet-50">Talking to device...</p>

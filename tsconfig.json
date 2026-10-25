@@ -10,9 +10,10 @@
     "skipLibCheck": true,
     "paths": {
       "*": ["./*"],
+      "@components/*": ["./src/components/*"],
+      "@public/*": ["./public/*"],
       "@server": ["./src/index.ts"],
-      "@server/*": ["./src/*"],
-      "@public/*": ["./public/*"]
+      "@server/*": ["./src/server/*"]
     }
   },
   "include": ["globals.d.ts", "**/*.ts", "**/*.tsx"]

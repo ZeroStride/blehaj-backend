@@ -1,7 +1,6 @@
-import type { PropsWithChildren } from "react"
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import clsx from "clsx"
+import type { PropsWithChildren } from "react"
 
 import "@public/styles/global.css"
 

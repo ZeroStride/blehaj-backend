@@ -1,6 +1,8 @@
 import { staticPlugin } from "@elysia/static"
-import index from "@public/index.html"
 import { Elysia } from "elysia"
+
+import index from "@public/index.html"
+import parseBlehaj from "@server/blehajParser"
 
 export const app = new Elysia()
   .use(
@@ -10,6 +12,17 @@ export const app = new Elysia()
     })
   )
   .get("/:uuid", index)
+  .parser("blehaj", parseBlehaj)
+  .post(
+    "/api/configure",
+    async ({ request, body }) => {
+      // console.log(request)
+      console.log("now in the handler", body)
+    },
+    {
+      parse: ["blehaj"],
+    }
+  )
   .listen(3000)
 
 console.log(
