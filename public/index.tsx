@@ -6,33 +6,28 @@ import { useMachine } from "@xstate/react"
 import { Scanner } from "@yudiel/react-qr-scanner"
 import { createRoot } from "react-dom/client"
 import { parse as parseUuid } from "uuid"
-import { assign, setup } from "xstate"
-
-interface AppConfiguration {
-  serviceUuid: string | null
-  characteristicUuid: string | null
-}
+import { setup, types } from "xstate"
+import { z } from "zod"
 
 interface AppContext {
-  serviceUuid: string | null
   characteristicUuid: string | null
+  serviceUuid?: string
   characteristic?: BluetoothRemoteGATTCharacteristic
 }
 
 const appMachine = setup({
-  types: {
-    context: {} as AppContext,
-    input: {} as AppConfiguration,
-  },
-  guards: {
-    configurationValid: ({ context, event }) => {
-      let ret = false
-      try {
-        parseUuid(context.serviceUuid || event.serviceUuid)
-        parseUuid(context.characteristicUuid || event.characteristicUuid)
-        ret = true
-      } catch {}
-      return ret
+  schemas: {
+    context: types<AppContext>(),
+    input: z.object({
+      serviceUuid: z.optional(z.uuid()),
+      characteristicUuid: z.uuid(),
+    }),
+    events: {
+      "input.serviceUuid": z.object({ serviceUuid: z.uuid() }),
+      "system.connected": types<{
+        characteristic: BluetoothRemoteGATTCharacteristic
+      }>(),
+      "internal.configured": z.object({}),
     },
   },
 }).createMachine({
@@ -44,21 +39,19 @@ const appMachine = setup({
   },
   id: "app",
   initial: "initialized",
-  always: {
-    target: ".configured",
-    guard: "configurationValid",
-  },
   states: {
     initialized: {
       on: {
-        configure: {
-          actions: assign({
-            serviceUuid: ({ event }) => event.serviceUuid,
-            characteristicUuid: ({ event }) => event.characteristicUuid,
-          }),
+        "input.serviceUuid": ({ event }) => ({
+          context: { serviceUuid: event.serviceUuid },
           target: "configured",
-          guard: "configurationValid",
-        },
+        }),
+        "internal.configured": { target: "configured" },
+      },
+      entry: (context, enq) => {
+        if (context.context.serviceUuid && context.context.characteristicUuid) {
+          enq.raise({ type: "internal.configured" })
+        }
       },
     },
     configured: {
@@ -66,16 +59,15 @@ const appMachine = setup({
         history.replaceState({}, "", context.serviceUuid)
       },
       on: {
-        "system.success": {
+        "system.connected": ({ event }) => ({
+          context: { characteristic: event.characteristic },
           target: "query_gatt",
-          actions: assign({
-            characteristic: ({ event }) => event.characteristic,
-          }),
-        },
-        // "system.error": "connect_error",
+        }),
       },
     },
-    query_gatt: {},
+    query_gatt: {
+      on: {},
+    },
   },
 })
 
@@ -87,7 +79,8 @@ function App() {
     input: {
       serviceUuid:
         window.location.pathname.split("/")[1] ||
-        new URLSearchParams(window.location.search).get("uuid"),
+        new URLSearchParams(window.location.search).get("uuid") ||
+        undefined,
       characteristicUuid: CONFIGURATION_CHARACTERISTIC_UUID,
     },
   })
@@ -103,7 +96,10 @@ function App() {
                 for (var i = result.length - 1; i >= 0; i--) {
                   try {
                     parseUuid(result[i].rawValue)
-                    send({ type: "configure", serviceUuid: result[i].rawValue })
+                    send({
+                      type: "input.serviceUuid",
+                      serviceUuid: result[i].rawValue,
+                    })
                     break
                   } catch {}
                 }
@@ -120,7 +116,7 @@ function App() {
           <form
             action={(formData) => {
               const data = Object.fromEntries(formData.entries())
-              send({ type: "configure", serviceUuid: data.uuid })
+              send({ type: "input.serviceUuid", serviceUuid: data.uuid })
             }}
           >
             <input className="bg-violet-50" name="uuid" />
@@ -135,15 +131,21 @@ function App() {
           <BleConnect
             serviceUuid={app.context.serviceUuid!}
             characteristicUuid={app.context.characteristicUuid!}
-            onCharacteristic={(characteristic) =>
-              send({ type: "system.success", characteristic })
-            }
+            onCharacteristic={(characteristic) => {
+              send({ type: "system.connected", characteristic })
+            }}
           />
         </div>
       )
     case "query_gatt":
-      console.log(app.context.characteristic)
-      return <div>gotta go do the thing</div>
+      app.context.characteristic?.readValue().then((value) => {
+        console.log(value)
+      })
+      return (
+        <div className="px-2 py-1 rounded-xl bg-zinc-800 shadow-lg outline outline-violet/5">
+          <p className="text-3xl text-violet-50">Talking to device...</p>
+        </div>
+      )
   }
 }
 

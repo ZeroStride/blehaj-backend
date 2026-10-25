@@ -1,6 +1,8 @@
 import { useMachine } from "@xstate/react"
-import { assign, enqueueActions, setup } from "xstate"
+import { setup, types } from "xstate"
 
+// Todo - Do validated schema for configuration
+// z.uuid(), z.uuid() etc
 export interface BleConnectConfiguration {
   readonly serviceUuid: BluetoothServiceUUID
   readonly characteristicUuid: BluetoothCharacteristicUUID
@@ -11,102 +13,79 @@ export interface BleConnectConfiguration {
 }
 
 interface BleConnectContext {
-  readonly configuration: BleConnectConfiguration
+  readonly serviceUuid: BluetoothServiceUUID
+  readonly characteristicUuid: BluetoothCharacteristicUUID
   device?: BluetoothDevice
   server?: BluetoothRemoteGATTServer
   service?: BluetoothRemoteGATTService
   characteristic?: BluetoothRemoteGATTCharacteristic
-  error?: Error
 }
 
 const handshake = setup({
-  types: {
-    context: {} as BleConnectContext,
-    input: {} as BleConnectConfiguration,
-    output: {} as {
-      readonly characteristic?: BluetoothRemoteGATTCharacteristic
-      readonly error?: Error
+  schemas: {
+    context: types<BleConnectContext>(),
+    input: types<BleConnectConfiguration>(),
+    output: types<BluetoothRemoteGATTCharacteristic>(),
+    events: {
+      "system.success": types<{
+        device?: BluetoothDevice
+        server?: BluetoothRemoteGATTServer
+        service?: BluetoothRemoteGATTService
+        characteristic?: BluetoothRemoteGATTCharacteristic
+      }>(),
+      "user.initiate": types<{
+        // Idk why this is required
+        characteristic?: BluetoothRemoteGATTCharacteristic
+      }>(),
     },
   },
 }).createMachine({
   context: ({ input }) => {
     return {
-      configuration: input,
+      serviceUuid: input.serviceUuid,
+      characteristicUuid: input.characteristicUuid,
     }
   },
-  output: ({ context }) => ({
-    characteristic: context.characteristic,
-    error: context.error,
-  }),
   id: "handshake",
   initial: "ready",
   states: {
     ready: {
-      on: { "user.initiate": "request_device" },
+      on: { "user.initiate": ({ event }) => ({ target: "request_device" }) },
     },
     request_device: {
       on: {
-        "system.success": {
+        "system.success": ({ event }) => ({
+          context: { device: event.device },
           target: "connect_gatt",
-          actions: assign({
-            device: ({ event }) => event.device,
-          }),
-        },
-        "system.error": "error",
+        }),
       },
     },
     connect_gatt: {
       on: {
-        "system.success": {
+        "system.success": ({ event }) => ({
           target: "get_service_gatt",
-          actions: assign({
-            server: ({ event }) => event.server,
-          }),
-        },
-        "system.error": "error",
+          context: { server: event.server },
+        }),
       },
     },
     get_service_gatt: {
       on: {
-        "system.success": {
+        "system.success": ({ event }) => ({
           target: "get_charactaristic_gatt",
-          actions: assign({
-            service: ({ event }) => event.service,
-          }),
-        },
-        "system.error": "error",
+          context: { service: event.service },
+        }),
       },
     },
     get_charactaristic_gatt: {
       on: {
         "system.success": {
           target: "success",
-          actions: assign({
-            characteristic: ({ event }) => event.characteristic,
-          }),
         },
-        "system.error": "error",
       },
-    },
-    hist: { type: "history" },
-    error: {
-      type: "final",
-      entry: enqueueActions(({ enqueue, event, context }) => {
-        console.error(`Error in state ${event.type}: `, event.error)
-        enqueue.assign({
-          error: event.error,
-        })
-        context.configuration.onError?.call(null, event.error)
-      }),
     },
     success: {
       type: "final",
-      entry: ({ context }) => {
-        context.configuration.onCharacteristic?.call(
-          null,
-          context.characteristic!
-        )
-      },
+      output: ({ event }) => event.characteristic!,
     },
   },
 })
@@ -117,12 +96,17 @@ export default function BleConnect({
   onCharacteristic,
   onError,
 }: BleConnectConfiguration) {
-  const [state, send] = useMachine(handshake, {
+  const [state, send, actor] = useMachine(handshake, {
     input: {
       serviceUuid,
       characteristicUuid,
-      onCharacteristic,
-      onError,
+    },
+  })
+
+  actor.subscribe({
+    error: (error) => onError,
+    complete: () => {
+      onCharacteristic?.call(null, state.output!)
     },
   })
 
@@ -130,7 +114,7 @@ export default function BleConnect({
     send({ type: "user.initiate" })
     navigator.bluetooth
       .requestDevice({
-        filters: [{ services: [state.context.configuration.serviceUuid] }],
+        filters: [{ services: [state.context.serviceUuid] }],
       })
       .then((device) => {
         send({ type: "system.success", device })
@@ -138,21 +122,14 @@ export default function BleConnect({
       })
       .then((server) => {
         send({ type: "system.success", server })
-        return server?.getPrimaryService(
-          state.context.configuration.serviceUuid
-        )
+        return server?.getPrimaryService(state.context.serviceUuid)
       })
       .then((service) => {
         send({ type: "system.success", service })
-        return service?.getCharacteristic(
-          state.context.configuration.characteristicUuid
-        )
+        return service?.getCharacteristic(state.context.characteristicUuid)
       })
       .then((characteristic) => {
         send({ type: "system.success", characteristic })
-      })
-      .catch((error) => {
-        send({ type: "system.error", error })
       })
   }
 
@@ -170,9 +147,7 @@ export default function BleConnect({
           <p className="text-3xl text-violet-50">
             State: {state.value.toString()}
           </p>
-          <p className="text-s text-rose-300">
-            {state.output?.error?.toString()}
-          </p>
+          <p className="text-s text-rose-300">{state.error?.toString()}</p>
         </div>
       )}
     </div>
