@@ -1,20 +1,22 @@
-/// <reference types="web-bluetooth" />
 import { useMachine } from "@xstate/react"
 import { assign, enqueueActions, setup } from "xstate"
 
 export interface BleConnectConfiguration {
   readonly serviceUuid: BluetoothServiceUUID
   readonly characteristicUuid: BluetoothCharacteristicUUID
+  readonly onCharacteristic?: (
+    characteristic: BluetoothRemoteGATTCharacteristic
+  ) => void
+  readonly onError?: (error: Error) => void
 }
 
 interface BleConnectContext {
-  readonly serviceUuid: BluetoothServiceUUID
-  readonly characteristicUuid: BluetoothCharacteristicUUID
-  device: BluetoothDevice | null
-  server: BluetoothRemoteGATTServer | null
-  service: BluetoothRemoteGATTService | null
-  characteristic: BluetoothRemoteGATTCharacteristic | null
-  error: Error | null
+  readonly configuration: BleConnectConfiguration
+  device?: BluetoothDevice
+  server?: BluetoothRemoteGATTServer
+  service?: BluetoothRemoteGATTService
+  characteristic?: BluetoothRemoteGATTCharacteristic
+  error?: Error
 }
 
 const handshake = setup({
@@ -22,20 +24,14 @@ const handshake = setup({
     context: {} as BleConnectContext,
     input: {} as BleConnectConfiguration,
     output: {} as {
-      readonly characteristic: BluetoothRemoteGATTCharacteristic | null
-      readonly error: Error | null
+      readonly characteristic?: BluetoothRemoteGATTCharacteristic
+      readonly error?: Error
     },
   },
 }).createMachine({
   context: ({ input }) => {
     return {
-      serviceUuid: input.serviceUuid,
-      characteristicUuid: input.characteristicUuid,
-      device: null,
-      server: null,
-      service: null,
-      characteristic: null,
-      error: null,
+      configuration: input,
     }
   },
   output: ({ context }) => ({
@@ -95,15 +91,22 @@ const handshake = setup({
     hist: { type: "history" },
     error: {
       type: "final",
-      entry: enqueueActions(({ enqueue, event }) => {
+      entry: enqueueActions(({ enqueue, event, context }) => {
         console.error(`Error in state ${event.type}: `, event.error)
         enqueue.assign({
           error: event.error,
         })
+        context.configuration.onError?.call(null, event.error)
       }),
     },
     success: {
       type: "final",
+      entry: ({ context }) => {
+        context.configuration.onCharacteristic?.call(
+          null,
+          context.characteristic!
+        )
+      },
     },
   },
 })
@@ -111,11 +114,15 @@ const handshake = setup({
 export default function BleConnect({
   serviceUuid,
   characteristicUuid,
+  onCharacteristic,
+  onError,
 }: BleConnectConfiguration) {
   const [state, send] = useMachine(handshake, {
     input: {
-      serviceUuid: serviceUuid,
-      characteristicUuid: characteristicUuid,
+      serviceUuid,
+      characteristicUuid,
+      onCharacteristic,
+      onError,
     },
   })
 
@@ -123,32 +130,29 @@ export default function BleConnect({
     send({ type: "user.initiate" })
     navigator.bluetooth
       .requestDevice({
-        filters: [{ services: [state.context.serviceUuid] }],
+        filters: [{ services: [state.context.configuration.serviceUuid] }],
       })
       .then((device) => {
-        send({ type: "system.success", device: device })
-        console.log(`Got device ${device} connecting to ${device.gatt}...`)
+        send({ type: "system.success", device })
         return device.gatt?.connect()
       })
       .then((server) => {
-        send({ type: "system.success", server: server })
-        console.log(`Connected, getting service ${state.context.serviceUuid}`)
-        return server?.getPrimaryService(state.context.serviceUuid)
+        send({ type: "system.success", server })
+        return server?.getPrimaryService(
+          state.context.configuration.serviceUuid
+        )
       })
       .then((service) => {
-        send({ type: "system.success", service: service })
-        console.log(
-          `Service found ${service}, connecting to characteristic ${state.context.characteristicUuid}`
+        send({ type: "system.success", service })
+        return service?.getCharacteristic(
+          state.context.configuration.characteristicUuid
         )
-        return service?.getCharacteristic(state.context.characteristicUuid)
       })
       .then((characteristic) => {
-        send({ type: "system.success", characteristic: characteristic })
-        console.log(`Characteristic found ${characteristic}, success`)
-        return characteristic
+        send({ type: "system.success", characteristic })
       })
       .catch((error) => {
-        send({ type: "system.error", error: error })
+        send({ type: "system.error", error })
       })
   }
 
