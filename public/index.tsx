@@ -7,7 +7,6 @@ import { setup, types } from "xstate"
 import { z } from "zod"
 
 import BleConnect from "@components/BleConnect"
-import Layout from "@public/layouts"
 
 interface AppContext {
   characteristicUuid: string | null
@@ -96,30 +95,28 @@ function App() {
   switch (app.value) {
     case "initialized":
       return (
-        <div className="mx-auto w-2/5">
-          <div>
-            <Scanner
-              onScan={(result) => {
-                console.log(result)
-                for (var i = result.length - 1; i >= 0; i--) {
-                  try {
-                    parseUuid(result[i].rawValue)
-                    send({
-                      type: "input.serviceUuid",
-                      serviceUuid: result[i].rawValue,
-                    })
-                    break
-                  } catch {}
-                }
-              }}
-              classNames={{ video: "object-contain" }}
-              components={{
-                onOff: true,
-                finder: true,
-              }}
-              sound={false}
-            />
-          </div>
+        <Box>
+          <Scanner
+            onScan={(result) => {
+              console.log(result)
+              for (var i = result.length - 1; i >= 0; i--) {
+                try {
+                  parseUuid(result[i].rawValue)
+                  send({
+                    type: "input.serviceUuid",
+                    serviceUuid: result[i].rawValue,
+                  })
+                  break
+                } catch {}
+              }
+            }}
+            classNames={{ video: "object-contain" }}
+            components={{
+              onOff: true,
+              finder: true,
+            }}
+            sound={false}
+          />
 
           <form
             action={(formData) => {
@@ -130,12 +127,14 @@ function App() {
             <input className="bg-violet-50" name="uuid" />
             <input type="submit" hidden />
           </form>
-        </div>
+        </Box>
       )
     case "configured":
       return (
-        <div>
-          <p className="text-gray-500">{app.context.serviceUuid}</p>
+        <Box>
+          <Typography variant="h6" component="div">
+            {app.context.serviceUuid}
+          </Typography>
           <BleConnect
             serviceUuid={app.context.serviceUuid!}
             characteristicUuid={app.context.characteristicUuid!}
@@ -143,11 +142,11 @@ function App() {
               send({ type: "system.connected", characteristic })
             }}
             onError={(error) => {
-              console.log(error)
+              console.error(error)
               send({ type: "system.reset" })
             }}
           />
-        </div>
+        </Box>
       )
     case "query_gatt":
       app.context.characteristic
@@ -165,25 +164,95 @@ function App() {
         })
         .then((response) => console.log(response))
       return (
-        <div className="px-2 py-1 rounded-xl bg-zinc-800 shadow-lg outline outline-violet/5">
-          <p className="text-3xl text-violet-50">Talking to device...</p>
-        </div>
+        <Box>
+          <Typography variant="h4">Talking to device...</Typography>
+        </Box>
       )
   }
 }
 
+import {
+  AppBar,
+  createTheme,
+  CssBaseline,
+  Paper,
+  Stack,
+  styled,
+  ThemeProvider,
+  Typography,
+} from "@mui/material"
+import Box from "@mui/material/Box"
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: "#b00c7c",
+    },
+    secondary: {
+      main: "#a179f6",
+    },
+    mode: "dark",
+    background: {
+      default: "#05100a",
+      paper: "#05100a",
+    },
+  },
+  typography: {
+    fontWeightLight: 200,
+    fontWeightRegular: 300,
+    fontWeightMedium: 400,
+    fontWeightBold: 600,
+    fontSize: 15,
+  },
+  spacing: 11,
+  shape: {
+    borderRadius: 6,
+  },
+})
+
+const Item = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(1),
+  textAlign: "right",
+  color: (theme.vars ?? theme).palette.text.secondary,
+  ...theme.applyStyles("dark", {
+    backgroundColor: "#1A2027",
+  }),
+}))
+
 const root = createRoot(document.getElementById("elysia")!)
 root.render(
-  <Layout className="gap-6">
-    <div className="mx-auto flex flex-col gap-x-4 rounded-xl p-6 shadow-lg outline outline-violet/5 bg-slate-800 -outline-offset-1 outline-white/10">
-      <div className="text-center">
-        <p className="text-3xl text-violet-50">
-          🦈 <code>blehaj</code>
-        </p>
-      </div>
-      <div>
-        <App />
-      </div>
-    </div>
-  </Layout>
+  <ThemeProvider theme={theme}>
+    <CssBaseline />
+    <Box
+      sx={{
+        my: 5,
+        p: 2,
+        mx: "auto",
+        maxWidth: 800,
+        width: 2 / 3,
+        display: "flex",
+        boxShadow: 5,
+      }}
+    >
+      <Stack spacing={2} sx={{ width: 1 }}>
+        <Item>
+          <AppBar position="static" sx={{ flexDirection: "row" }}>
+            <Typography
+              variant="h3"
+              component="div"
+              sx={{ ml: 1, mr: 4, edge: "start" }}
+            >
+              🦈
+            </Typography>
+            <Typography variant="h3" component="div">
+              blehaj
+            </Typography>
+          </AppBar>
+        </Item>
+        <Item>
+          <App />
+        </Item>
+      </Stack>
+    </Box>
+  </ThemeProvider>
 )
