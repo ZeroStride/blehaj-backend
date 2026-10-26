@@ -130,6 +130,7 @@ const steps = [
 import {
   Box,
   Button,
+  LinearProgress,
   Step,
   StepContent,
   StepLabel,
@@ -196,11 +197,14 @@ export default function BleConnect({
           <Step key={step.label}>
             <StepLabel>{step.label}</StepLabel>
             <StepContent>
+              {index > 0 && (
+                <LinearProgress color="secondary" aria-label="Loading…" />
+              )}
               <Typography>{step.description}</Typography>
               <Box sx={{ mb: 2 }}>
                 {index === 0 && (
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     onClick={connect}
                     sx={{ mt: 1, mr: 1 }}
                   >

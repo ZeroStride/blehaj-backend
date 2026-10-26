@@ -171,6 +171,7 @@ function App() {
   }
 }
 
+import "@fontsource/fira-code"
 import {
   AppBar,
   createTheme,
@@ -194,7 +195,7 @@ const theme = createTheme({
     mode: "dark",
     background: {
       default: "#05100a",
-      paper: "#05100a",
+      paper: "#1a2027",
     },
   },
   typography: {
@@ -202,7 +203,8 @@ const theme = createTheme({
     fontWeightRegular: 300,
     fontWeightMedium: 400,
     fontWeightBold: 600,
-    fontSize: 15,
+    fontSize: 14,
+    fontFamily: "Fira Code",
   },
   spacing: 11,
   shape: {
@@ -214,9 +216,6 @@ const Item = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(1),
   textAlign: "right",
   color: (theme.vars ?? theme).palette.text.secondary,
-  ...theme.applyStyles("dark", {
-    backgroundColor: "#1A2027",
-  }),
 }))
 
 const root = createRoot(document.getElementById("elysia")!)
@@ -225,30 +224,23 @@ root.render(
     <CssBaseline />
     <Box
       sx={{
-        my: 5,
-        p: 2,
+        my: 2,
         mx: "auto",
         maxWidth: 800,
+        minWidth: 400,
         width: 2 / 3,
-        display: "flex",
         boxShadow: 5,
       }}
     >
-      <Stack spacing={2} sx={{ width: 1 }}>
-        <Item>
-          <AppBar position="static" sx={{ flexDirection: "row" }}>
-            <Typography
-              variant="h3"
-              component="div"
-              sx={{ ml: 1, mr: 4, edge: "start" }}
-            >
-              🦈
-            </Typography>
-            <Typography variant="h3" component="div">
-              blehaj
-            </Typography>
-          </AppBar>
-        </Item>
+      <Stack spacing={1} sx={{ width: 1 }}>
+        <AppBar position="static" sx={{ flexDirection: "row", py: 0.5 }}>
+          <Typography variant="h3" component="div" sx={{ ml: 1, mr: 4 }}>
+            🦈
+          </Typography>
+          <Typography variant="h3" component="div">
+            blehaj
+          </Typography>
+        </AppBar>
         <Item>
           <App />
         </Item>
