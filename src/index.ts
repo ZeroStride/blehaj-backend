@@ -12,17 +12,12 @@ export const app = new Elysia()
     })
   )
   .get("/:uuid", index)
-  .parser("blehaj", parseBlehaj)
-  .post(
-    "/api/configure",
-    async ({ request, body }) => {
-      // console.log(request)
-      console.log("now in the handler", body)
-    },
-    {
-      parse: ["blehaj"],
-    }
-  )
+  .onParse(async ({ request, contentType }) => {
+    if (contentType === "application/blehaj") return parseBlehaj({ request })
+  })
+  .post("/api/configure", ({ body }) => {
+    console.log("now in the handler", body)
+  })
   .listen(3000)
 
 console.log(

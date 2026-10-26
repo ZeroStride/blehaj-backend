@@ -3,7 +3,16 @@ import {
   decode as decodeMsgpack,
 } from "@msgpack/msgpack"
 
-export default async function parseBlehaj({ request }: { request: Request }) {
+export interface BlehajBody {
+  identifier: string
+  data: Uint8Array
+}
+
+export default async function parseBlehaj({
+  request,
+}: {
+  request: Request
+}): Promise<BlehajBody> {
   interface BleRequest {
     identifier: string
     data: Uint8Array
@@ -14,7 +23,7 @@ export default async function parseBlehaj({ request }: { request: Request }) {
     payload: Uint8Array
   }
 
-  return await decodeAsyncMsgpack(request.body!)
+  return decodeAsyncMsgpack(request.body!)
     .then((decoded_raw) => decoded_raw as [string, Uint8Array])
     .then((decoded) => {
       return {
@@ -71,5 +80,5 @@ export default async function parseBlehaj({ request }: { request: Request }) {
         return request
       }
     })
-    .then((request) => request)
+    .then((request) => request as BlehajBody)
 }
