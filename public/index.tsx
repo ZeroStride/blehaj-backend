@@ -28,6 +28,7 @@ const appMachine = setup({
         characteristic: BluetoothRemoteGATTCharacteristic
       }>(),
       "internal.configured": z.object({}),
+      "system.reset": z.object({}),
     },
   },
 }).createMachine({
@@ -48,9 +49,13 @@ const appMachine = setup({
         }),
         "internal.configured": { target: "configured" },
       },
-      entry: ({ context }, enq) => {
+      entry: ({ context, event }, enq) => {
         if (context.serviceUuid && context.characteristicUuid) {
-          enq.raise({ type: "internal.configured" })
+          enq.raise(
+            { type: "internal.configured" },
+            // delay: 0 on reset so there's a tick inbetween and the UI can refresh
+            event.type === "system.reset" ? { delay: 0 } : {}
+          )
         }
       },
     },
@@ -63,6 +68,9 @@ const appMachine = setup({
           context: { characteristic: event.characteristic },
           target: "query_gatt",
         }),
+        "system.reset": {
+          target: "initialized",
+        },
       },
     },
     query_gatt: {
@@ -133,6 +141,10 @@ function App() {
             characteristicUuid={app.context.characteristicUuid!}
             onCharacteristic={(characteristic) => {
               send({ type: "system.connected", characteristic })
+            }}
+            onError={(error) => {
+              console.log(error)
+              send({ type: "system.reset" })
             }}
           />
         </div>
