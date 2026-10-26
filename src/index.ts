@@ -1,5 +1,5 @@
 import { staticPlugin } from "@elysia/static"
-import { Elysia } from "elysia"
+import { Elysia, ParseError } from "elysia"
 
 import index from "@public/index.html"
 import parseBlehaj from "@server/blehajParser"
@@ -12,6 +12,12 @@ export const app = new Elysia()
     })
   )
   .get("/:uuid", index)
+  .onError(({ error }) => {
+    if (error instanceof ParseError) {
+      throw error.cause || error
+    }
+    throw error
+  })
   .onParse(async ({ request, contentType }) => {
     if (contentType === "application/blehaj") return parseBlehaj({ request })
   })
