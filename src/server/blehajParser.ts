@@ -2,6 +2,7 @@ import {
   decodeAsync as decodeAsyncMsgpack,
   decode as decodeMsgpack,
 } from "@msgpack/msgpack"
+import Elysia, { ParseError } from "elysia"
 
 /*
 {
@@ -35,7 +36,36 @@ class SignatureMismatchError extends Error {
   }
 }
 
-export default async function parseBlehaj({ request }: { request: Request }) {
+interface PluginOptions {
+  keyResolver?: (ctx: {
+    identifier: string
+    cypher: string
+  }) => Promise<Uint8Array>
+}
+
+export const contentTypeBlehaj = (options?: PluginOptions) =>
+  new Elysia()
+    .state("plugin-version", 1)
+    .error({ 403: SignatureMismatchError })
+    .onError(({ error }) => {
+      if (
+        error instanceof ParseError &&
+        error.cause instanceof SignatureMismatchError
+      ) {
+        return error.cause.toResponse()
+      }
+      throw error
+    })
+    .parser("blehaj", async (ctx) => {
+      if (ctx.contentType === "application/blehaj") return parseBlehaj(ctx)
+    })
+    .onParse({ as: "global" }, async (ctx) => {
+      if (ctx.contentType === "application/blehaj") return parseBlehaj(ctx)
+    })
+
+export default contentTypeBlehaj
+
+async function parseBlehaj({ request }: { request: Request }) {
   interface Request {
     NetworkManagerConfiguration: { interface: string }
   }
@@ -95,5 +125,4 @@ export default async function parseBlehaj({ request }: { request: Request }) {
         return envelope
       }
     })
-  // .then((request) => request as BlehajBody)
 }
