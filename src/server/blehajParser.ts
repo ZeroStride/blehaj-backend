@@ -18,6 +18,16 @@ export interface PluginOptions {
   keyResolver?: (ctx: KeyResolverContext) => Promise<CryptoKey>
 }
 
+export interface BlehajRequest {
+  identifier: string
+  algorithm: string
+  request: Partial<BlehajRequestType>
+}
+
+export interface BlehajRequestType {
+  NetworkManagerConfiguration: { interface: string }
+}
+
 export const contentTypeBlehaj = (options?: PluginOptions) =>
   new Elysia()
     .state("plugin-version", 1)
@@ -43,15 +53,11 @@ export default contentTypeBlehaj
 async function parseBlehaj(
   { request }: { request: Request },
   { keyResolver }: PluginOptions & { scope?: string }
-) {
-  interface Request {
-    NetworkManagerConfiguration: { interface: string }
-  }
-
+): Promise<BlehajRequest> {
   interface Envelope {
     identifier: string
     algorithm: string
-    request: Partial<Request>
+    request: Partial<BlehajRequestType>
   }
 
   interface SignedPayload {
@@ -109,6 +115,7 @@ async function parseBlehaj(
         return envelope
       }
     })
+    .then((envelope) => envelope as BlehajRequest) // Todo - Reformat here if needed
 }
 
 class SignatureMismatchError extends Error {

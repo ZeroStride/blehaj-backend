@@ -2,7 +2,7 @@ import { staticPlugin } from "@elysia/static"
 import { Elysia } from "elysia"
 
 import index from "@public/index.html"
-import { contentTypeBlehaj } from "@server/blehajParser"
+import { BlehajRequest, contentTypeBlehaj } from "@server/blehajParser"
 
 export const app = new Elysia()
   .use(
@@ -32,8 +32,26 @@ export const app = new Elysia()
       },
     })
   )
-  .post("/api/configure", ({ body }) => {
-    console.log("now in the handler", body)
+  .post("/api/configure", async ({ body, status }) => {
+    const request = body as BlehajRequest
+    console.log("now in the handler", request)
+    if (!request.request.NetworkManagerConfiguration) {
+      return status(422, `Unable to process request type: ${request.request}`)
+    }
+
+    if (
+      !request.request.NetworkManagerConfiguration.interface.startsWith("wlan")
+    ) {
+      return status(
+        422,
+        `Don't know how to configure ${request.request.NetworkManagerConfiguration.interface}`
+      )
+    }
+
+    return {
+      configuration_parameters: "wifi",
+    }
+    // const connectionConfiguration = NetworkManagerConnectionBuilder.wireless802_11("Karl Mar")
   })
   .listen(3000)
 
