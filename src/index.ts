@@ -20,7 +20,7 @@ export const app = new Elysia()
         console.log("Resolving key", ctx)
         return Promise.resolve(
           Uint8Array.fromHex(
-            "731e93151e81e645fd6ba7642c57d7551d9fb5d167f796e039727c97e1f1a70f"
+            "731e93151e81e645fd6ba7642c57d7551d9fb5d167f796e039727c97e1f1a70e"
           )
         )
       },
