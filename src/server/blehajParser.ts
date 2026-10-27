@@ -81,8 +81,10 @@ async function parseBlehaj({ request }: { request: Request }) {
     payload: Uint8Array
   }
 
-  return decodeAsyncMsgpack(request.body!)
-    .then((decoded) => decoded as SignedPayload)
+  const bodyAsArrayBuffer = await Bun.readableStreamToArrayBuffer(request.body!)
+
+  return Bun.zstdDecompress(bodyAsArrayBuffer)
+    .then((decompressed) => decodeMsgpack(decompressed) as SignedPayload)
     .then((signedEnvelope) => {
       const envelope = decodeMsgpack(signedEnvelope.payload) as Envelope
 
