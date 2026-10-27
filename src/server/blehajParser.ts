@@ -1,17 +1,27 @@
 import { decode as decodeMsgpack } from "@msgpack/msgpack"
 import Elysia, { ParseError } from "elysia"
 
+// https://developer.mozilla.org/docs/Web/API/SubtleCrypto/importKey)
+export interface KeyResolverContext {
+  identifier: string
+  algorithm:
+    | AlgorithmIdentifier
+    | RsaHashedImportParams
+    | EcKeyImportParams
+    | HmacImportParams
+    | AesKeyAlgorithm
+  extractable: boolean
+  keyUsages: ReadonlyArray<KeyUsage>
+}
+
 export interface PluginOptions {
-  keyResolver?: (ctx: {
-    identifier: string
-    cypher: string
-  }) => Promise<BufferSource>
+  keyResolver?: (ctx: KeyResolverContext) => Promise<CryptoKey>
 }
 
 export const contentTypeBlehaj = (options?: PluginOptions) =>
   new Elysia()
     .state("plugin-version", 1)
-    .error({ 403: SignatureMismatchError })
+    .error({ 403: SignatureMismatchError, 422: UnsupportedAlgorithmError })
     .onError(({ error }) => {
       if (
         error instanceof ParseError &&
@@ -23,7 +33,6 @@ export const contentTypeBlehaj = (options?: PluginOptions) =>
     })
     .parser("blehaj", async (ctx) => parseBlehaj(ctx, options || {}))
     .onParse(async (ctx) => {
-      console.log("onParse")
       if (ctx.contentType === "application/blehaj")
         return parseBlehaj(ctx, options || {})
     })
@@ -33,7 +42,7 @@ export default contentTypeBlehaj
 
 async function parseBlehaj(
   { request }: { request: Request },
-  { keyResolver }: PluginOptions
+  { keyResolver }: PluginOptions & { scope?: string }
 ) {
   interface Request {
     NetworkManagerConfiguration: { interface: string }
@@ -41,7 +50,7 @@ async function parseBlehaj(
 
   interface Envelope {
     identifier: string
-    cypher: string
+    algorithm: string
     request: Partial<Request>
   }
 
@@ -57,26 +66,27 @@ async function parseBlehaj(
     .then((signedEnvelope) => {
       const envelope = decodeMsgpack(signedEnvelope.payload) as Envelope
 
+      if (
+        envelope.algorithm &&
+        envelope.algorithm.toLowerCase() !== "ed25519"
+      ) {
+        throw new UnsupportedAlgorithmError(envelope.algorithm)
+      }
+
       if (signedEnvelope.signature) {
         if (keyResolver) {
           const sig_bytes = Uint8Array.fromHex(signedEnvelope.signature)
+          const algorithm = { name: "Ed25519" }
 
-          return keyResolver(envelope)
-            .then((key_bytes) => {
-              return key_bytes
-            })
-            .then((key_bytes) =>
-              crypto.subtle.importKey(
-                "raw",
-                key_bytes,
-                { name: "Ed25519" },
-                false,
-                ["verify"]
-              )
-            )
+          return keyResolver({
+            identifier: envelope.identifier,
+            algorithm,
+            extractable: false,
+            keyUsages: ["verify"],
+          })
             .then((key) =>
               crypto.subtle.verify(
-                { name: "Ed25519" },
+                algorithm,
                 key,
                 sig_bytes,
                 Buffer.from(signedEnvelope.payload)
@@ -103,6 +113,26 @@ async function parseBlehaj(
 
 class SignatureMismatchError extends Error {
   status = 403
+
+  constructor(public message: string) {
+    super(message)
+  }
+
+  toResponse() {
+    return Response.json(
+      {
+        error: this.message,
+        code: this.status,
+      },
+      {
+        status: this.status,
+      }
+    )
+  }
+}
+
+class UnsupportedAlgorithmError extends Error {
+  status = 422
 
   constructor(public message: string) {
     super(message)
