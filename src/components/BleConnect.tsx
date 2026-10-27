@@ -156,6 +156,10 @@ export default function BleConnect({
   const [waiting, setWaiting] = React.useState(false)
 
   function wait<T>(ms: number, value: T) {
+    if (localStorage.getItem("noWaitMode") === "true") {
+      return value
+    }
+
     return new Promise<T>((resolve) => {
       setWaiting(true)
       return setTimeout(
@@ -212,7 +216,7 @@ export default function BleConnect({
         {steps.map((step, index) => (
           <Step key={step.label}>
             <StepLabel>{step.label}</StepLabel>
-            <StepContent>
+            <StepContent sx={{ textAlign: "right" }}>
               {index > 0 &&
                 (waiting ? (
                   <LinearProgress color="secondary" aria-label="Loading..." />

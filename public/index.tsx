@@ -132,7 +132,11 @@ function App() {
     case "configured":
       return (
         <Box>
-          <Typography variant="h6" component="div">
+          <Typography
+            variant="caption"
+            component="div"
+            sx={{ textAlign: "right" }}
+          >
             {app.context.serviceUuid}
           </Typography>
           <BleConnect
@@ -170,9 +174,9 @@ function App() {
   }
 }
 
+import BlehajAppBar from "@components/BlehajAppBar"
 import "@fontsource/fira-code"
 import {
-  AppBar,
   createTheme,
   CssBaseline,
   Paper,
@@ -213,7 +217,6 @@ const theme = createTheme({
 
 const Item = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(1),
-  textAlign: "right",
   color: (theme.vars ?? theme).palette.text.secondary,
 }))
 
@@ -232,14 +235,7 @@ root.render(
       }}
     >
       <Stack spacing={1} sx={{ width: 1 }}>
-        <AppBar position="static" sx={{ flexDirection: "row", py: 0.5 }}>
-          <Typography variant="h3" component="div" sx={{ ml: 1, mr: 4 }}>
-            🦈
-          </Typography>
-          <Typography variant="h3" component="div">
-            blehaj
-          </Typography>
-        </AppBar>
+        <BlehajAppBar />
         <Item>
           <App />
         </Item>
