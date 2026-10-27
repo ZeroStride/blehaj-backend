@@ -6,7 +6,8 @@ import { contentTypeBlehaj } from "@server/blehajParser"
 
 export const app = new Elysia()
   .use(
-    staticPlugin({
+    // Future-ezri: Do not remove this 'await' it breaks shit
+    await staticPlugin({
       bunFullstack: true,
       prefix: "/",
     })
