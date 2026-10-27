@@ -71,7 +71,7 @@ export default function BlehajAppBar() {
           🦈
         </Typography>
         <Typography variant="h3" component="div">
-          blehaj
+          {localStorage.getItem("noWaitMode") === "true" && "⚡"}blehaj
         </Typography>
         <div>
           <IconButton

@@ -1,4 +1,19 @@
 /// <reference types="web-bluetooth" />
+import "@fontsource/fira-code"
+import {
+  createTheme,
+  CssBaseline,
+  Divider,
+  Paper,
+  Stack,
+  Step,
+  StepLabel,
+  Stepper,
+  styled,
+  ThemeProvider,
+  Typography,
+} from "@mui/material"
+import Box from "@mui/material/Box"
 import { useMachine } from "@xstate/react"
 import { Scanner } from "@yudiel/react-qr-scanner"
 import { createRoot } from "react-dom/client"
@@ -7,6 +22,8 @@ import { setup, types } from "xstate"
 import { z } from "zod"
 
 import BleConnect from "@components/BleConnect"
+import BlehajAppBar from "@components/BlehajAppBar"
+import ReadConfigurationRequest from "@components/ReadConfigurationRequest"
 
 interface AppContext {
   characteristicUuid: string | null
@@ -28,6 +45,9 @@ const appMachine = setup({
       }>(),
       "internal.configured": z.object({}),
       "system.reset": z.object({}),
+      "system.request_configuration": z.object({
+        configuration_parameters: z.string(),
+      }),
     },
   },
 }).createMachine({
@@ -73,10 +93,54 @@ const appMachine = setup({
       },
     },
     query_gatt: {
-      on: {},
+      on: {
+        "system.request_configuration": ({ event }) => {
+          if (event.configuration_parameters !== "wifi") {
+            throw new Error(
+              `Don't know how to configure ${event.configuration_parameters}`
+            )
+          }
+
+          return {
+            target: "configure_wifi",
+          }
+        },
+      },
     },
+    configure_wifi: {},
   },
 })
+
+const steps = [
+  "Connect to Device",
+  "Configuration Request",
+  "Gather Information",
+  "Device Configured",
+]
+
+function CommonThingy({
+  serviceUuid,
+  activeStep,
+}: {
+  serviceUuid?: string
+  activeStep: number
+}) {
+  return (
+    <Stack>
+      <Stepper activeStep={activeStep} alternativeLabel>
+        {steps.map((label) => (
+          <Step key={label}>
+            <StepLabel error={false}>{label}</StepLabel>
+          </Step>
+        ))}
+      </Stepper>
+      <Divider sx={{ mb: 0.5, pt: 1 }} />
+      <Typography variant="caption" component="div" sx={{ textAlign: "right" }}>
+        {serviceUuid}
+      </Typography>
+    </Stack>
+  )
+}
 
 function App() {
   const CONFIGURATION_CHARACTERISTIC_UUID =
@@ -95,7 +159,7 @@ function App() {
   switch (app.value) {
     case "initialized":
       return (
-        <Box>
+        <Stack>
           <Scanner
             onScan={(result) => {
               console.log(result)
@@ -127,18 +191,12 @@ function App() {
             <input className="bg-violet-50" name="uuid" />
             <input type="submit" hidden />
           </form>
-        </Box>
+        </Stack>
       )
     case "configured":
       return (
-        <Box>
-          <Typography
-            variant="caption"
-            component="div"
-            sx={{ textAlign: "right" }}
-          >
-            {app.context.serviceUuid}
-          </Typography>
+        <Stack>
+          <CommonThingy serviceUuid={app.context.serviceUuid} activeStep={0} />
           <BleConnect
             serviceUuid={app.context.serviceUuid!}
             characteristicUuid={app.context.characteristicUuid!}
@@ -150,42 +208,33 @@ function App() {
               send({ type: "system.reset" })
             }}
           />
-        </Box>
+        </Stack>
       )
     case "query_gatt":
-      app.context.characteristic
-        ?.readValue()
-        .then((value) => {
-          const request = new Request("/api/configure", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/blehaj",
-            },
-            body: value.buffer as BodyInit,
-          })
-          return fetch(request)
-        })
-        .then((response) => console.log(response))
       return (
-        <Box>
-          <Typography variant="h4">Talking to device...</Typography>
-        </Box>
+        <Stack>
+          <CommonThingy serviceUuid={app.context.serviceUuid} activeStep={1} />
+
+          <ReadConfigurationRequest
+            characteristic={app.context.characteristic!}
+            onComplete={(json) =>
+              send({
+                type: "system.request_configuration",
+                configuration_parameters: json.configuration_parameters,
+              })
+            }
+          />
+        </Stack>
+      )
+    case "configure_wifi":
+      return (
+        <Stack>
+          <CommonThingy serviceUuid={app.context.serviceUuid} activeStep={2} />
+          <Typography variant="h4">Configuring WiFi</Typography>
+        </Stack>
       )
   }
 }
-
-import BlehajAppBar from "@components/BlehajAppBar"
-import "@fontsource/fira-code"
-import {
-  createTheme,
-  CssBaseline,
-  Paper,
-  Stack,
-  styled,
-  ThemeProvider,
-  Typography,
-} from "@mui/material"
-import Box from "@mui/material/Box"
 
 const theme = createTheme({
   palette: {
