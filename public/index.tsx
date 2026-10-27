@@ -7,6 +7,7 @@ import {
   Paper,
   Stack,
   Step,
+  StepIcon,
   StepLabel,
   Stepper,
   styled,
@@ -23,12 +24,14 @@ import { z } from "zod"
 
 import BleConnect from "@components/BleConnect"
 import BlehajAppBar from "@components/BlehajAppBar"
+import ConfigureWiFi from "@components/ConfigureWiFi"
 import ReadConfigurationRequest from "@components/ReadConfigurationRequest"
 
 interface AppContext {
   characteristicUuid: string | null
   serviceUuid?: string
   characteristic?: BluetoothRemoteGATTCharacteristic
+  nonce?: string
 }
 
 const appMachine = setup({
@@ -47,6 +50,7 @@ const appMachine = setup({
       "system.reset": z.object({}),
       "system.request_configuration": z.object({
         configuration_parameters: z.string(),
+        nonce: z.uuidv7(),
       }),
     },
   },
@@ -102,6 +106,7 @@ const appMachine = setup({
           }
 
           return {
+            context: { nonce: event.nonce },
             target: "configure_wifi",
           }
         },
@@ -125,12 +130,19 @@ function CommonThingy({
   serviceUuid?: string
   activeStep: number
 }) {
+  // Ok I give up for now. IDK how to make active/complete ones the secondary color
+  const StyledStepIcon = styled(StepIcon)(({ theme }) => ({
+    // color: (theme.vars ?? theme).palette.secondary.main,
+  }))
+
   return (
     <Stack>
       <Stepper activeStep={activeStep} alternativeLabel>
         {steps.map((label) => (
           <Step key={label}>
-            <StepLabel error={false}>{label}</StepLabel>
+            <StepLabel slots={{ stepIcon: StyledStepIcon }} error={false}>
+              {label}
+            </StepLabel>
           </Step>
         ))}
       </Stepper>
@@ -221,6 +233,7 @@ function App() {
               send({
                 type: "system.request_configuration",
                 configuration_parameters: json.configuration_parameters,
+                nonce: json.nonce,
               })
             }
           />
@@ -230,7 +243,11 @@ function App() {
       return (
         <Stack>
           <CommonThingy serviceUuid={app.context.serviceUuid} activeStep={2} />
-          <Typography variant="h4">Configuring WiFi</Typography>
+          <ConfigureWiFi
+            characteristic={app.context.characteristic!}
+            nonce={app.context.nonce!}
+            onComplete={(json) => console.log(json)}
+          />
         </Stack>
       )
   }

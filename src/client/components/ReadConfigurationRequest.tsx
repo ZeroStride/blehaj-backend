@@ -1,5 +1,4 @@
 import MarkdownStepper from "@components/MarkdownStepper"
-import { Box } from "@mui/material"
 import React from "react"
 const steps = [
   {
@@ -27,6 +26,7 @@ export default function ReadConfigurationRequest({
     configuration_parameters,
   }: {
     configuration_parameters: string
+    nonce: string
   }) => void
 }) {
   const [activeStep, setActiveStep] = React.useState(0)
@@ -58,14 +58,13 @@ export default function ReadConfigurationRequest({
       .then((value) => wait(4000, value))
       .then((value) => {
         setActiveStep(1)
-        const request = new Request("/api/configure", {
+        return fetch("/api/configure", {
           method: "POST",
           headers: {
             "Content-Type": "application/blehaj",
           },
           body: value.buffer as BodyInit,
         })
-        return fetch(request)
       })
       .then((response) => wait(4000, response))
       .then((response) => {
@@ -79,12 +78,6 @@ export default function ReadConfigurationRequest({
   }, [])
 
   return (
-    <Box>
-      <MarkdownStepper
-        activeStep={activeStep}
-        waiting={waiting}
-        steps={steps}
-      />
-    </Box>
+    <MarkdownStepper activeStep={activeStep} waiting={waiting} steps={steps} />
   )
 }

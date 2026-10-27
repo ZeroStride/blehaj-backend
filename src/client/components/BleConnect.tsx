@@ -202,11 +202,13 @@ export default function BleConnect({
         return wait(3000, characteristic)
       })
       .then((characteristic) => onCharacteristic?.call(null, characteristic!))
-      .catch((error: NotFoundError) => {
-        setActiveStep(0)
-      })
       .catch((error: Error) => {
-        onError?.call(null, error)
+        console.error(error)
+        if (error instanceof NotFoundError) {
+          setActiveStep(0)
+        } else {
+          onError?.call(null, error)
+        }
       })
   }
 

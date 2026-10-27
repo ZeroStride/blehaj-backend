@@ -10,7 +10,8 @@
     "skipLibCheck": true,
     "paths": {
       "*": ["./*"],
-      "@components/*": ["./src/components/*"],
+      "@client/*": ["./src/client/*"],
+      "@components/*": ["./src/client/components/*"],
       "@public/*": ["./public/*"],
       "@server": ["./src/index.ts"],
       "@server/*": ["./src/server/*"]
