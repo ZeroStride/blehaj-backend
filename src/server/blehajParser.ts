@@ -1,46 +1,11 @@
-import {
-  decodeAsync as decodeAsyncMsgpack,
-  decode as decodeMsgpack,
-} from "@msgpack/msgpack"
+import { decode as decodeMsgpack } from "@msgpack/msgpack"
 import Elysia, { ParseError } from "elysia"
 
-/*
-{
-  identifier: "f0463ee4-7294-48a2-a1e8-e4b54d6ef7e6",
-  cypher: "none",
-  data: {
-    NetworkManagerConfiguration: {
-      interface: "wlan0",
-    },
-  },
-}
-*/
-
-class SignatureMismatchError extends Error {
-  status = 403
-
-  constructor(public message: string) {
-    super(message)
-  }
-
-  toResponse() {
-    return Response.json(
-      {
-        error: this.message,
-        code: this.status,
-      },
-      {
-        status: this.status,
-      }
-    )
-  }
-}
-
-interface PluginOptions {
+export interface PluginOptions {
   keyResolver?: (ctx: {
     identifier: string
     cypher: string
-  }) => Promise<Uint8Array>
+  }) => Promise<BufferSource>
 }
 
 export const contentTypeBlehaj = (options?: PluginOptions) =>
@@ -56,16 +21,20 @@ export const contentTypeBlehaj = (options?: PluginOptions) =>
       }
       throw error
     })
-    .parser("blehaj", async (ctx) => {
-      if (ctx.contentType === "application/blehaj") return parseBlehaj(ctx)
+    .parser("blehaj", async (ctx) => parseBlehaj(ctx, options || {}))
+    .onParse(async (ctx) => {
+      console.log("onParse")
+      if (ctx.contentType === "application/blehaj")
+        return parseBlehaj(ctx, options || {})
     })
-    .onParse({ as: "global" }, async (ctx) => {
-      if (ctx.contentType === "application/blehaj") return parseBlehaj(ctx)
-    })
+    .as("global")
 
 export default contentTypeBlehaj
 
-async function parseBlehaj({ request }: { request: Request }) {
+async function parseBlehaj(
+  { request }: { request: Request },
+  { keyResolver }: PluginOptions
+) {
   interface Request {
     NetworkManagerConfiguration: { interface: string }
   }
@@ -89,42 +58,65 @@ async function parseBlehaj({ request }: { request: Request }) {
       const envelope = decodeMsgpack(signedEnvelope.payload) as Envelope
 
       if (signedEnvelope.signature) {
-        const sig_bytes = Uint8Array.fromHex(signedEnvelope.signature)
+        if (keyResolver) {
+          const sig_bytes = Uint8Array.fromHex(signedEnvelope.signature)
 
-        // Todo - This would fetch from the database using 'identifier'
-        const todoFetchFromDatabaseOrWhatever = Promise.resolve(
-          Uint8Array.fromHex(
-            "731e93151e81e645fd6ba7642c57d7551d9fb5d167f796e039727c97e1f1a70f"
-          )
-        )
-
-        return todoFetchFromDatabaseOrWhatever
-          .then((key_bytes) =>
-            crypto.subtle.importKey(
-              "raw",
-              key_bytes,
-              { name: "Ed25519" },
-              false,
-              ["verify"]
+          return keyResolver(envelope)
+            .then((key_bytes) => {
+              return key_bytes
+            })
+            .then((key_bytes) =>
+              crypto.subtle.importKey(
+                "raw",
+                key_bytes,
+                { name: "Ed25519" },
+                false,
+                ["verify"]
+              )
             )
-          )
-          .then((key) =>
-            crypto.subtle.verify(
-              { name: "Ed25519" },
-              key,
-              sig_bytes,
-              Buffer.from(signedEnvelope.payload)
+            .then((key) =>
+              crypto.subtle.verify(
+                { name: "Ed25519" },
+                key,
+                sig_bytes,
+                Buffer.from(signedEnvelope.payload)
+              )
             )
-          )
-          .then((matched) => {
-            if (!matched) {
-              throw new SignatureMismatchError("Signature mismatch")
-            }
+            .then((matched) => {
+              if (!matched) {
+                throw new SignatureMismatchError("Signature mismatch")
+              }
 
-            return envelope
-          })
+              return envelope
+            })
+        } else {
+          console.warn(
+            `device ${envelope.identifier} is sending signed requests but parser is configured without 'keyResolver', so it can't be validated`
+          )
+          return envelope
+        }
       } else {
         return envelope
       }
     })
+}
+
+class SignatureMismatchError extends Error {
+  status = 403
+
+  constructor(public message: string) {
+    super(message)
+  }
+
+  toResponse() {
+    return Response.json(
+      {
+        error: this.message,
+        code: this.status,
+      },
+      {
+        status: this.status,
+      }
+    )
+  }
 }

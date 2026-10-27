@@ -13,7 +13,19 @@ export const app = new Elysia()
     })
   )
   .get("/:uuid", index)
-  .use(contentTypeBlehaj())
+  .use(
+    contentTypeBlehaj({
+      // Todo - This would fetch from the database using 'identifier'
+      keyResolver: (ctx) => {
+        console.log("Resolving key", ctx)
+        return Promise.resolve(
+          Uint8Array.fromHex(
+            "731e93151e81e645fd6ba7642c57d7551d9fb5d167f796e039727c97e1f1a70f"
+          )
+        )
+      },
+    })
+  )
   .post("/api/configure", ({ body }) => {
     console.log("now in the handler", body)
   })

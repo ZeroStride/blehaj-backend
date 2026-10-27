@@ -155,7 +155,6 @@ function App() {
           const request = new Request("/api/configure", {
             method: "POST",
             headers: {
-              Accept: "application/json",
               "Content-Type": "application/blehaj",
             },
             body: value.buffer as BodyInit,
