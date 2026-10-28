@@ -1,5 +1,8 @@
-import MarkdownStepper from "@components/MarkdownStepper"
 import React from "react"
+
+import { useWait } from "@client/wait"
+import MarkdownStepper from "@components/MarkdownStepper"
+
 const steps = [
   {
     label: "Talking to Device",
@@ -31,25 +34,7 @@ export default function ReadConfigurationRequest({
   }) => void
 }) {
   const [activeStep, setActiveStep] = React.useState(0)
-  const [waiting, setWaiting] = React.useState(false)
-
-  function wait<T>(ms: number, value: T) {
-    if (localStorage.getItem("noWaitMode") === "true") {
-      return value
-    }
-
-    return new Promise<T>((resolve) => {
-      setWaiting(true)
-      return setTimeout(
-        (v) => {
-          setWaiting(false)
-          resolve(v)
-        },
-        ms,
-        value
-      )
-    })
-  }
+  const [waiting, wait] = useWait()
 
   React.useEffect(() => {
     setActiveStep(0)

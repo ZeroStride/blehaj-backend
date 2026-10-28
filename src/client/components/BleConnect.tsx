@@ -139,6 +139,8 @@ import { NotFoundError } from "elysia"
 import { MuiMarkdown } from "mui-markdown"
 import React from "react"
 
+import { useWait } from "@client/wait"
+
 export default function BleConnect({
   serviceUuid,
   characteristicUuid,
@@ -153,27 +155,9 @@ export default function BleConnect({
   })
 
   const [activeStep, setActiveStep] = React.useState(0)
-  const [waiting, setWaiting] = React.useState(false)
+  const [waiting, wait] = useWait()
 
-  function wait<T>(ms: number, value: T) {
-    if (localStorage.getItem("noWaitMode") === "true") {
-      return value
-    }
-
-    return new Promise<T>((resolve) => {
-      setWaiting(true)
-      return setTimeout(
-        (v) => {
-          setWaiting(false)
-          resolve(v)
-        },
-        ms,
-        value
-      )
-    })
-  }
-
-  const connect = () => {
+  const connect = React.useEffectEvent(() => {
     send({ type: "user.initiate" })
     setActiveStep(1)
 
@@ -211,7 +195,7 @@ export default function BleConnect({
           onError?.call(null, error)
         }
       })
-  }
+  })
 
   return (
     <>
