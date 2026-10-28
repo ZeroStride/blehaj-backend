@@ -168,89 +168,122 @@ function App() {
     },
   })
 
-  switch (app.value) {
-    case "initialized":
-      return (
-        <Stack>
-          <Scanner
-            onScan={(result) => {
-              console.log(result)
-              for (var i = result.length - 1; i >= 0; i--) {
-                try {
-                  parseUuid(result[i].rawValue)
-                  send({
-                    type: "input.serviceUuid",
-                    serviceUuid: result[i].rawValue,
-                  })
-                  break
-                } catch {}
+  // BluetoothUUID.getService(state.context.serviceUuid)
+
+  const TodoRefactorComponent = () => {
+    switch (app.value) {
+      case "initialized":
+        return (
+          <Stack>
+            <Scanner
+              onScan={(result) => {
+                console.log(result)
+                for (var i = result.length - 1; i >= 0; i--) {
+                  try {
+                    parseUuid(result[i].rawValue)
+                    send({
+                      type: "input.serviceUuid",
+                      serviceUuid: result[i].rawValue,
+                    })
+                    break
+                  } catch {}
+                }
+              }}
+              classNames={{ video: "object-contain" }}
+              components={{
+                onOff: true,
+                finder: true,
+              }}
+              sound={false}
+            />
+
+            <form
+              action={(formData) => {
+                const data = Object.fromEntries(formData.entries())
+                send({ type: "input.serviceUuid", serviceUuid: data.uuid })
+              }}
+            >
+              <input className="bg-violet-50" name="uuid" />
+              <input type="submit" hidden />
+            </form>
+          </Stack>
+        )
+      case "configured":
+        return (
+          <Stack>
+            <CommonThingy
+              serviceUuid={app.context.serviceUuid}
+              activeStep={0}
+            />
+            <BleConnect
+              serviceUuid={app.context.serviceUuid!}
+              characteristicUuid={app.context.characteristicUuid!}
+              onCharacteristic={(characteristic) => {
+                send({ type: "system.connected", characteristic })
+              }}
+              onError={(error) => {
+                console.error(error)
+                send({ type: "system.reset" })
+              }}
+            />
+          </Stack>
+        )
+      case "query_gatt":
+        return (
+          <Stack>
+            <CommonThingy
+              serviceUuid={app.context.serviceUuid}
+              activeStep={1}
+            />
+
+            <ReadConfigurationRequest
+              characteristic={app.context.characteristic!}
+              onComplete={(json) =>
+                send({
+                  type: "system.request_configuration",
+                  configuration_parameters: json.configuration_parameters,
+                  nonce: json.nonce,
+                })
               }
-            }}
-            classNames={{ video: "object-contain" }}
-            components={{
-              onOff: true,
-              finder: true,
-            }}
-            sound={false}
-          />
-
-          <form
-            action={(formData) => {
-              const data = Object.fromEntries(formData.entries())
-              send({ type: "input.serviceUuid", serviceUuid: data.uuid })
-            }}
-          >
-            <input className="bg-violet-50" name="uuid" />
-            <input type="submit" hidden />
-          </form>
-        </Stack>
-      )
-    case "configured":
-      return (
-        <Stack>
-          <CommonThingy serviceUuid={app.context.serviceUuid} activeStep={0} />
-          <BleConnect
-            serviceUuid={app.context.serviceUuid!}
-            characteristicUuid={app.context.characteristicUuid!}
-            onCharacteristic={(characteristic) => {
-              send({ type: "system.connected", characteristic })
-            }}
-            onError={(error) => {
-              console.error(error)
-              send({ type: "system.reset" })
-            }}
-          />
-        </Stack>
-      )
-    case "query_gatt":
-      return (
-        <Stack>
-          <CommonThingy serviceUuid={app.context.serviceUuid} activeStep={1} />
-
-          <ReadConfigurationRequest
-            characteristic={app.context.characteristic!}
-            onComplete={(json) =>
-              send({
-                type: "system.request_configuration",
-                configuration_parameters: json.configuration_parameters,
-                nonce: json.nonce,
-              })
-            }
-          />
-        </Stack>
-      )
-    case "configure_wifi":
-      return (
-        <Stack>
-          <CommonThingy serviceUuid={app.context.serviceUuid} activeStep={2} />
-          <ConfigureWiFi
-            characteristic={app.context.characteristic!}
-            nonce={app.context.nonce!}
-            onComplete={(json) => console.log(json)}
-          />
-        </Stack>
-      )
+            />
+          </Stack>
+        )
+      case "configure_wifi":
+        return (
+          <Stack>
+            <CommonThingy
+              serviceUuid={app.context.serviceUuid}
+              activeStep={2}
+            />
+            <ConfigureWiFi
+              characteristic={app.context.characteristic!}
+              nonce={app.context.nonce!}
+              onComplete={(json) => console.log(json)}
+            />
+          </Stack>
+        )
+    }
   }
+
+  return (
+    <Box
+      sx={{
+        my: 2,
+        mx: "auto",
+        maxWidth: 800,
+        minWidth: 400,
+        width: 2 / 3,
+        boxShadow: 5,
+      }}
+    >
+      <Stack spacing={1} sx={{ width: 1 }}>
+        <BlehajAppBar />
+        <Item>
+          <TodoRefactorComponent />
+        </Item>
+      </Stack>
+    </Box>
+  )
 }
 
 const theme = createTheme({
@@ -290,22 +323,6 @@ const root = createRoot(document.getElementById("elysia")!)
 root.render(
   <ThemeProvider theme={theme}>
     <CssBaseline />
-    <Box
-      sx={{
-        my: 2,
-        mx: "auto",
-        maxWidth: 800,
-        minWidth: 400,
-        width: 2 / 3,
-        boxShadow: 5,
-      }}
-    >
-      <Stack spacing={1} sx={{ width: 1 }}>
-        <BlehajAppBar />
-        <Item>
-          <App />
-        </Item>
-      </Stack>
-    </Box>
+    <App />
   </ThemeProvider>
 )

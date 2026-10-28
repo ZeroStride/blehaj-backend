@@ -176,6 +176,7 @@ export default function BleConnect({
   const connect = () => {
     send({ type: "user.initiate" })
     setActiveStep(1)
+
     navigator.bluetooth
       .requestDevice({
         filters: [{ services: [state.context.serviceUuid] }],
