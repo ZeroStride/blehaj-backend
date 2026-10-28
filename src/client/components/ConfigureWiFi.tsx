@@ -78,7 +78,8 @@ export default function ConfigureWiFi({
       characteristic.addEventListener(
         "characteristicvaluechanged",
         async (ev) => {
-          await characteristic.stopNotifications()
+          setActiveStep(4)
+          await waitAtLeast(3000, characteristic.stopNotifications())
           onComplete?.call(null, ev)
         }
       )

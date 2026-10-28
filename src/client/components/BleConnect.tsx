@@ -166,11 +166,13 @@ export default function BleConnect({
   const connect = React.useEffectEvent(() => {
     send({ type: "user.initiate" })
     setActiveStep(1)
+    setPaused(true)
 
     navigator.bluetooth
       .requestDevice({
         filters: [{ services: [state.context.serviceUuid] }],
       })
+      .then((device) => wait(0, device))
       .then(async (device) => {
         send({ type: "system.success", device })
         setActiveStep(2)
