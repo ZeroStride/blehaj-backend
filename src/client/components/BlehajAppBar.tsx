@@ -73,12 +73,10 @@ export default function BlehajAppBar({
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography variant="h1" component="div" sx={{ flexGrow: 1, pt: 1 }}>
+        <Typography variant="h1" sx={{ flexGrow: 1, pt: 1 }}>
           🦈
         </Typography>
-        <Typography variant="h3" component="div">
-          {noWaitMode && "⚡"}blehaj
-        </Typography>
+        <Typography variant="h3">blehaj</Typography>
         <div>
           <IconButton
             size="large"
@@ -111,7 +109,7 @@ export default function BlehajAppBar({
               <ListItemIcon>
                 {noWaitMode ? <Check fontSize="small" /> : null}
               </ListItemIcon>
-              No Reading Mode
+              No Wait Mode
             </MenuItem>
           </Menu>
         </div>
@@ -119,7 +117,7 @@ export default function BlehajAppBar({
       <Snackbar
         open={noReadingSnackbar}
         onClose={handleClose}
-        message="'No Reading Mode' means that the UI will not give you a chance to read events which happen quickly."
+        message="'No Wait Mode' means that the UI will not give you a chance to read events which happen quickly."
         action={action}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
         sx={{ boxShadow: 5 }}

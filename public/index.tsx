@@ -268,6 +268,16 @@ function App() {
             {app.context.serviceUuid}
           </Typography>
         </Item>
+        {noWaitMode && (
+          <Stack direction="row" spacing={1}>
+            <Typography variant="caption" sx={{ textAlign: "right" }}>
+              'No Wait Mode' is enabled, this means the UI won't give you a
+              chance to pause, or wait for you to read descriptions of what's
+              happening behind the scenes.
+            </Typography>
+            <Typography variant="h3">⚡</Typography>
+          </Stack>
+        )}
       </Stack>
     </Box>
   )
