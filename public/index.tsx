@@ -1,9 +1,7 @@
-/// <reference types="web-bluetooth" />
 import "@fontsource/fira-code"
 import {
   createTheme,
   CssBaseline,
-  Divider,
   Paper,
   Stack,
   Step,
@@ -12,20 +10,20 @@ import {
   Stepper,
   styled,
   ThemeProvider,
-  Typography,
 } from "@mui/material"
 import Box from "@mui/material/Box"
 import { useMachine } from "@xstate/react"
-import { Scanner } from "@yudiel/react-qr-scanner"
 import { createRoot } from "react-dom/client"
-import { parse as parseUuid } from "uuid"
-import { setup, types } from "xstate"
+import { setup, StateFrom, types } from "xstate"
 import { z } from "zod"
 
 import BleConnect from "@components/BleConnect"
 import BlehajAppBar from "@components/BlehajAppBar"
 import ConfigureWiFi from "@components/ConfigureWiFi"
 import ReadConfigurationRequest from "@components/ReadConfigurationRequest"
+import WelcomeAndUuidInput, {
+  uuidOrUndefined,
+} from "@components/WelcomeAndUuidInput"
 
 interface AppContext {
   characteristicUuid: string | null
@@ -83,6 +81,7 @@ const appMachine = setup({
       },
     },
     configured: {
+      description: "Connect to Device",
       entry: ({ context }) => {
         history.replaceState({}, "", context.serviceUuid)
       },
@@ -97,6 +96,7 @@ const appMachine = setup({
       },
     },
     query_gatt: {
+      description: "Configuration Request",
       on: {
         "system.request_configuration": ({ event }) => {
           if (event.configuration_parameters !== "wifi") {
@@ -112,28 +112,29 @@ const appMachine = setup({
         },
       },
     },
-    configure_wifi: {},
+    configure_wifi: {
+      description: "Gather Information",
+    },
+    done: {
+      description: "Device Configured",
+    },
   },
 })
 
-const steps = [
-  "Connect to Device",
-  "Configuration Request",
-  "Gather Information",
-  "Device Configured",
-]
+const stateOrder = ["configured", "query_gatt", "configure_wifi", "done"]
 
 function CommonThingy({
-  serviceUuid,
-  activeStep,
+  snapshot,
 }: {
-  serviceUuid?: string
-  activeStep: number
+  snapshot: StateFrom<typeof appMachine>
 }) {
   // Ok I give up for now. IDK how to make active/complete ones the secondary color
   const StyledStepIcon = styled(StepIcon)(({ theme }) => ({
     // color: (theme.vars ?? theme).palette.secondary.main,
   }))
+
+  const activeStep = stateOrder.findIndex((v) => v === snapshot.value)
+  const steps = stateOrder.map((v) => snapshot.machine.states[v].description)
 
   return (
     <Stack>
@@ -146,10 +147,10 @@ function CommonThingy({
           </Step>
         ))}
       </Stepper>
-      <Divider sx={{ mb: 0.5, pt: 1 }} />
-      <Typography variant="caption" component="div" sx={{ textAlign: "right" }}>
+      {/*<Divider sx={{ mb: 0.5, pt: 1 }} />*/}
+      {/*    <Typography variant="caption" component="div" sx={{ textAlign: "right" }}>
         {serviceUuid}
-      </Typography>
+      </Typography>*/}
     </Stack>
   )
 }
@@ -161,106 +162,51 @@ function App() {
   const [app, send] = useMachine(appMachine, {
     input: {
       characteristicUuid: CONFIGURATION_CHARACTERISTIC_UUID,
-      serviceUuid:
+      serviceUuid: uuidOrUndefined(
         window.location.pathname.split("/")[1] ||
-        new URLSearchParams(window.location.search).get("uuid") ||
-        undefined,
+          new URLSearchParams(window.location.search).get("uuid")
+      ),
     },
   })
-
-  // BluetoothUUID.getService(state.context.serviceUuid)
 
   const TodoRefactorComponent = () => {
     switch (app.value) {
       case "initialized":
-        return (
-          <Stack>
-            <Scanner
-              onScan={(result) => {
-                console.log(result)
-                for (var i = result.length - 1; i >= 0; i--) {
-                  try {
-                    parseUuid(result[i].rawValue)
-                    send({
-                      type: "input.serviceUuid",
-                      serviceUuid: result[i].rawValue,
-                    })
-                    break
-                  } catch {}
-                }
-              }}
-              classNames={{ video: "object-contain" }}
-              components={{
-                onOff: true,
-                finder: true,
-              }}
-              sound={false}
-            />
-
-            <form
-              action={(formData) => {
-                const data = Object.fromEntries(formData.entries())
-                send({ type: "input.serviceUuid", serviceUuid: data.uuid })
-              }}
-            >
-              <input className="bg-violet-50" name="uuid" />
-              <input type="submit" hidden />
-            </form>
-          </Stack>
-        )
+        return <WelcomeAndUuidInput />
       case "configured":
         return (
-          <Stack>
-            <CommonThingy
-              serviceUuid={app.context.serviceUuid}
-              activeStep={0}
-            />
-            <BleConnect
-              serviceUuid={app.context.serviceUuid!}
-              characteristicUuid={app.context.characteristicUuid!}
-              onCharacteristic={(characteristic) => {
-                send({ type: "system.connected", characteristic })
-              }}
-              onError={(error) => {
-                console.error(error)
-                send({ type: "system.reset" })
-              }}
-            />
-          </Stack>
+          <BleConnect
+            serviceUuid={app.context.serviceUuid!}
+            characteristicUuid={app.context.characteristicUuid!}
+            onCharacteristic={(characteristic) => {
+              send({ type: "system.connected", characteristic })
+            }}
+            onError={(error) => {
+              console.error(error)
+              send({ type: "system.reset" })
+            }}
+          />
         )
       case "query_gatt":
         return (
-          <Stack>
-            <CommonThingy
-              serviceUuid={app.context.serviceUuid}
-              activeStep={1}
-            />
-
-            <ReadConfigurationRequest
-              characteristic={app.context.characteristic!}
-              onComplete={(json) =>
-                send({
-                  type: "system.request_configuration",
-                  configuration_parameters: json.configuration_parameters,
-                  nonce: json.nonce,
-                })
-              }
-            />
-          </Stack>
+          <ReadConfigurationRequest
+            characteristic={app.context.characteristic!}
+            onComplete={(json) =>
+              send({
+                type: "system.request_configuration",
+                configuration_parameters: json.configuration_parameters,
+                nonce: json.nonce,
+              })
+            }
+          />
         )
       case "configure_wifi":
         return (
-          <Stack>
-            <CommonThingy
-              serviceUuid={app.context.serviceUuid}
-              activeStep={2}
-            />
-            <ConfigureWiFi
-              characteristic={app.context.characteristic!}
-              nonce={app.context.nonce!}
-              onComplete={(json) => console.log(json)}
-            />
-          </Stack>
+          <ConfigureWiFi
+            characteristic={app.context.characteristic!}
+            nonce={app.context.nonce!}
+            onComplete={(json) => console.log(json)}
+          />
         )
     }
   }
@@ -278,6 +224,7 @@ function App() {
     >
       <Stack spacing={1} sx={{ width: 1 }}>
         <BlehajAppBar />
+        {app.value !== "initialized" && <CommonThingy snapshot={app} />}
         <Item>
           <TodoRefactorComponent />
         </Item>

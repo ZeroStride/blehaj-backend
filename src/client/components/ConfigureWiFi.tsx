@@ -156,11 +156,6 @@ export default function ConfigureWiFi({
                         }
                       }
                     }}
-                    classNames={{ video: "object-contain" }}
-                    components={{
-                      onOff: true,
-                      finder: true,
-                    }}
                     sound={false}
                   />
                 </Container>
