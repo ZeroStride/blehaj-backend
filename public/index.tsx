@@ -211,6 +211,7 @@ function App() {
       case "query_gatt":
         return (
           <ReadConfigurationRequest
+            {...{ noWaitMode }}
             {...app.context}
             onComplete={(json) =>
               send({

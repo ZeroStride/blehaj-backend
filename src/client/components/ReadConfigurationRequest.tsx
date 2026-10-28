@@ -23,6 +23,7 @@ const steps = [
 export default function ReadConfigurationRequest({
   characteristic,
   onComplete,
+  noWaitMode,
 }: {
   characteristic?: BluetoothRemoteGATTCharacteristic
   onComplete?: ({
@@ -32,9 +33,10 @@ export default function ReadConfigurationRequest({
     configuration_parameters: string
     nonce: string
   }) => void
+  noWaitMode: boolean
 }) {
   const [activeStep, setActiveStep] = React.useState(0)
-  const [waiting, wait] = useWait()
+  const [waiting, wait, waitAtLeast, paused, setPaused] = useWait()
 
   React.useEffect(() => {
     setActiveStep(0)
@@ -64,6 +66,8 @@ export default function ReadConfigurationRequest({
   }, [])
 
   return (
-    <MarkdownStepper activeStep={activeStep} waiting={waiting} steps={steps} />
+    <MarkdownStepper
+      {...{ activeStep, waiting, steps, noWaitMode, paused, setPaused }}
+    />
   )
 }
