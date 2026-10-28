@@ -225,6 +225,7 @@ function App() {
       case "configure_wifi":
         return (
           <ConfigureWiFi
+            {...{ noWaitMode }}
             {...app.context}
             nonce={app.context.nonce!}
             onComplete={(confirmation) => {
