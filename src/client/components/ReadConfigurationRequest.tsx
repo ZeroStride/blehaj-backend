@@ -43,7 +43,7 @@ export default function ReadConfigurationRequest({
 
     characteristic
       ?.readValue()
-      .then((value) => wait(4000, value))
+      .then((value) => wait(3000, value))
       .then((value) => {
         setActiveStep(1)
         return fetch("/api/configure", {
@@ -54,12 +54,12 @@ export default function ReadConfigurationRequest({
           body: value.buffer as BodyInit,
         })
       })
-      .then((response) => wait(4000, response))
+      .then((response) => wait(3000, response))
       .then((response) => {
         setActiveStep(2)
         return response.json()
       })
-      .then((json) => wait(4000, json))
+      .then((json) => wait(3000, json))
       .then((json) => {
         onComplete?.call(null, json)
       })
