@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "bun run --watch src/index.ts",
-    "build": "bun build --production --compile --target bun --outfile server src/index.ts",
+    "disabled_build": "bun build --production --compile --target bun --outfile server src/index.ts",
     "start": "NODE_ENV=production bun src/index.ts"
   },
   "dependencies": {
