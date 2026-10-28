@@ -125,10 +125,14 @@ const steps = [
   },
 ]
 
+import PauseIcon from "@mui/icons-material/Pause"
 import {
   Box,
   Button,
+  Container,
+  Fab,
   LinearProgress,
+  Stack,
   Step,
   StepContent,
   StepLabel,
@@ -155,7 +159,7 @@ export default function BleConnect({
   })
 
   const [activeStep, setActiveStep] = React.useState(0)
-  const [waiting, wait, waitAtLeast] = useWait()
+  const [waiting, wait, waitAtLeast, paused, setPaused] = useWait()
 
   const connect = React.useEffectEvent(() => {
     send({ type: "user.initiate" })
@@ -204,29 +208,45 @@ export default function BleConnect({
           <Step key={step.label}>
             <StepLabel>{step.label}</StepLabel>
             <StepContent sx={{ textAlign: "right" }}>
-              {index > 0 &&
-                (waiting ? (
-                  <LinearProgress color="secondary" aria-label="Loading..." />
-                ) : (
-                  <LinearProgress
-                    color="secondary"
-                    aria-label="Waiting..."
-                    variant="query"
-                  />
-                ))}
-              <MuiMarkdown>{step.description}</MuiMarkdown>
+              <Stack direction="row">
+                <Container>
+                  {index > 0 &&
+                    (waiting ? (
+                      <LinearProgress
+                        color="secondary"
+                        aria-label="Loading..."
+                      />
+                    ) : (
+                      <LinearProgress
+                        color="secondary"
+                        aria-label="Waiting..."
+                        variant="query"
+                      />
+                    ))}
+                  <MuiMarkdown>{step.description}</MuiMarkdown>
 
-              <Box sx={{ mb: 2 }}>
-                {index === 0 && (
-                  <Button
-                    variant="contained"
-                    onClick={connect}
-                    sx={{ mt: 1, mr: 1 }}
-                  >
-                    Connect
-                  </Button>
-                )}
-              </Box>
+                  <Box sx={{ mb: 2 }}>
+                    {index === 0 && (
+                      <Button
+                        variant="contained"
+                        onClick={connect}
+                        sx={{ mt: 1, mr: 1 }}
+                        aria-label="connect"
+                      >
+                        Connect
+                      </Button>
+                    )}
+                  </Box>
+                </Container>
+                <Fab
+                  size="small"
+                  aria-label="pause"
+                  sx={{ mr: -4 }}
+                  onClick={(e) => setPaused(!paused)}
+                >
+                  <PauseIcon />
+                </Fab>
+              </Stack>
             </StepContent>
           </Step>
         ))}
