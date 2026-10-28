@@ -27,6 +27,11 @@ const steps = [
     description: `The server is decrypting the request from the device, and then it will tell the web app what information it needs from
                         the user.`,
   },
+  {
+    label: "Passing Value to Device",
+    description: `The value from the server is also encrypted ([ML-KEM](https://en.wikipedia.org/wiki/ML-KEM))
+                  The web application can't read it, but the device can.`,
+  },
 ]
 
 export default function ConfigureWiFi({
@@ -36,11 +41,7 @@ export default function ConfigureWiFi({
 }: {
   characteristic: BluetoothRemoteGATTCharacteristic
   nonce: string
-  onComplete?: ({
-    configuration_parameters,
-  }: {
-    configuration_parameters: string
-  }) => void
+  onComplete?: (confirmation: object) => void
 }) {
   const [activeStep, setActiveStep] = React.useState(0)
   const [waiting, setWaiting] = React.useState(false)
@@ -84,8 +85,8 @@ export default function ConfigureWiFi({
       characteristic.addEventListener(
         "characteristicvaluechanged",
         async (ev) => {
-          console.log("characteristicvaluechanged", ev)
           await characteristic.stopNotifications()
+          onComplete?.call(null, ev)
         }
       )
     })
@@ -103,6 +104,11 @@ export default function ConfigureWiFi({
       }),
     })
       .then((response) => response.arrayBuffer())
+      .then((body) => wait(3000, body))
+      .then((body) => {
+        setActiveStep(3)
+        return body
+      })
       .then((body) => wait(3000, body))
       .then((body) => characteristic.writeValue(body))
       .catch((error) => console.error(error))

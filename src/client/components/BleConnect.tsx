@@ -101,7 +101,7 @@ const steps = [
     label: "Searching for Device",
     description: `The web app is now scanning for Bluetooth devices in range which
                   are advertising the service that \`blehaj\` is running. This is the
-                  long collection of numbers and letters you can see above this box.
+                  long collection of numbers and letters you can see below this box, and in the address bar.
                   That is called a 'UUID' which is short for Universally Unique Identifier.`,
   },
   {

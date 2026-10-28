@@ -10,6 +10,7 @@ import {
   Stepper,
   styled,
   ThemeProvider,
+  Typography,
 } from "@mui/material"
 import Box from "@mui/material/Box"
 import { useMachine } from "@xstate/react"
@@ -24,6 +25,7 @@ import ReadConfigurationRequest from "@components/ReadConfigurationRequest"
 import WelcomeAndUuidInput, {
   uuidOrUndefined,
 } from "@components/WelcomeAndUuidInput"
+import { MuiMarkdown } from "mui-markdown"
 
 interface AppContext {
   characteristicUuid: string | null
@@ -50,6 +52,7 @@ const appMachine = setup({
         configuration_parameters: z.string(),
         nonce: z.uuidv7(),
       }),
+      "system.complete": z.object({ confirmation: z.any() }),
     },
   },
 }).createMachine({
@@ -114,9 +117,15 @@ const appMachine = setup({
     },
     configure_wifi: {
       description: "Gather Information",
+      on: {
+        "system.complete": {
+          target: "done",
+        },
+      },
     },
     done: {
       description: "Device Configured",
+      final: true,
     },
   },
 })
@@ -147,10 +156,6 @@ function CommonThingy({
           </Step>
         ))}
       </Stepper>
-      {/*<Divider sx={{ mb: 0.5, pt: 1 }} />*/}
-      {/*    <Typography variant="caption" component="div" sx={{ textAlign: "right" }}>
-        {serviceUuid}
-      </Typography>*/}
     </Stack>
   )
 }
@@ -215,8 +220,18 @@ function App() {
           <ConfigureWiFi
             characteristic={app.context.characteristic!}
             nonce={app.context.nonce!}
-            onComplete={(json) => console.log(json)}
+            onComplete={(confirmation) => {
+              console.log("all done", confirmation)
+              send({ type: "system.complete", confirmation: confirmation })
+            }}
           />
+        )
+      case "done":
+        return (
+          <MuiMarkdown>
+            All done! Thanks for letting me show you how `blehaj` works! If you
+            have any questions, let me know.
+          </MuiMarkdown>
         )
     }
   }
@@ -237,6 +252,13 @@ function App() {
         {app.value !== "initialized" && <CommonThingy snapshot={app} />}
         <Item>
           <TodoRefactorComponent />
+          <Typography
+            variant="caption"
+            component="div"
+            sx={{ textAlign: "right" }}
+          >
+            {app.context.serviceUuid}
+          </Typography>
         </Item>
       </Stack>
     </Box>
