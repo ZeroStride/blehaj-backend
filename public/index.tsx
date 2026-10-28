@@ -172,7 +172,17 @@ function App() {
   const TodoRefactorComponent = () => {
     switch (app.value) {
       case "initialized":
-        return <WelcomeAndUuidInput />
+        return (
+          <WelcomeAndUuidInput
+            onUuid={(uuid, simulate) => {
+              history.pushState({}, "", uuid)
+              send({
+                type: "input.serviceUuid",
+                serviceUuid: uuid,
+              })
+            }}
+          />
+        )
       case "configured":
         return (
           <BleConnect
