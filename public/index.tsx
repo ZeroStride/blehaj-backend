@@ -211,7 +211,7 @@ function App() {
       case "query_gatt":
         return (
           <ReadConfigurationRequest
-            characteristic={app.context.characteristic!}
+            {...app.context}
             onComplete={(json) =>
               send({
                 type: "system.request_configuration",
@@ -224,7 +224,7 @@ function App() {
       case "configure_wifi":
         return (
           <ConfigureWiFi
-            characteristic={app.context.characteristic!}
+            {...app.context}
             nonce={app.context.nonce!}
             onComplete={(confirmation) => {
               console.log("all done", confirmation)

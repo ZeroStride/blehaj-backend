@@ -24,7 +24,7 @@ export default function ReadConfigurationRequest({
   characteristic,
   onComplete,
 }: {
-  characteristic: BluetoothRemoteGATTCharacteristic
+  characteristic?: BluetoothRemoteGATTCharacteristic
   onComplete?: ({
     configuration_parameters,
     nonce,

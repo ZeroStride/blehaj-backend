@@ -41,7 +41,7 @@ export default function ConfigureWiFi({
   nonce,
   onComplete,
 }: {
-  characteristic: BluetoothRemoteGATTCharacteristic
+  characteristic?: BluetoothRemoteGATTCharacteristic
   nonce: string
   onComplete?: (confirmation: object) => void
 }) {
@@ -65,7 +65,7 @@ export default function ConfigureWiFi({
   }) {
     setActiveStep(2)
 
-    await characteristic.startNotifications().then(() => {
+    await characteristic?.startNotifications().then(() => {
       characteristic.addEventListener(
         "characteristicvaluechanged",
         async (ev) => {
@@ -94,7 +94,7 @@ export default function ConfigureWiFi({
         return body
       })
       .then((body) => wait(3000, body))
-      .then((body) => characteristic.writeValue(body))
+      .then((body) => characteristic?.writeValue(body))
       .catch((error) => console.error(error))
   }
 
