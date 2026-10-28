@@ -155,7 +155,7 @@ export default function BleConnect({
   })
 
   const [activeStep, setActiveStep] = React.useState(0)
-  const [waiting, wait] = useWait()
+  const [waiting, wait, waitAtLeast] = useWait()
 
   const connect = React.useEffectEvent(() => {
     send({ type: "user.initiate" })
@@ -165,15 +165,15 @@ export default function BleConnect({
       .requestDevice({
         filters: [{ services: [state.context.serviceUuid] }],
       })
-      .then((device) => {
+      .then(async (device) => {
         send({ type: "system.success", device })
         setActiveStep(2)
-        return device.gatt?.connect()
+        return waitAtLeast(3000, device.gatt?.connect())
       })
       .then((server) => {
         send({ type: "system.success", server })
         setActiveStep(3)
-        return server?.getPrimaryService(state.context.serviceUuid)
+        return server!.getPrimaryService(state.context.serviceUuid)
       })
       .then((service) => wait(3000, service))
       .then((service) => {
