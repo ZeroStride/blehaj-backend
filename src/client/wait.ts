@@ -17,7 +17,7 @@ export function useWait(options?: {
 
     return new Promise<T>((resolve) => {
       setWaiting(true)
-      return setTimeout(
+      setTimeout(
         (v) => {
           setWaiting(false)
           resolve(v)
@@ -39,7 +39,7 @@ export function useWait(options?: {
         const delta = performance.now() - startedAt
         return new Promise<T>((resolve) => {
           setWaiting(true)
-          return setTimeout(
+          setTimeout(
             (v) => {
               setWaiting(false)
               resolve(v)
