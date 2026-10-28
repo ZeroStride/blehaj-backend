@@ -14,6 +14,7 @@ export default function PauseControl({
   return (
     !noWaitMode && (
       <ToggleButtonGroup
+        sx={{ pl: 1 }}
         orientation="vertical"
         value={paused ? "pause" : "play"}
         color={paused ? "warning" : "secondary"}

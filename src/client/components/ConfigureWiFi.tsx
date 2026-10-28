@@ -114,7 +114,7 @@ export default function ConfigureWiFi({
         <Step key={step.label}>
           <StepLabel>{step.label}</StepLabel>
           <StepContent sx={{ textAlign: "right" }}>
-            <Stack direction="row" spacing={-2}>
+            <Stack direction="row" spacing={-2} sx={{ mr: -1 }}>
               <Container>
                 {waiting && (
                   <LinearProgress
