@@ -4,12 +4,14 @@ import { z } from "zod"
 // Todo - Do validated schema for configuration
 // z.uuid(), z.uuid() etc
 export interface BleConnectConfiguration {
-  readonly serviceUuid: BluetoothServiceUUID
-  readonly characteristicUuid: BluetoothCharacteristicUUID
-  readonly onCharacteristic?: (
+  // Just optional so I can spread operator the app context in
+  readonly serviceUuid?: BluetoothServiceUUID
+  readonly characteristicUuid: BluetoothCharacteristicUUID | null
+  readonly onCharacteristic: (
     characteristic: BluetoothRemoteGATTCharacteristic
   ) => void
-  readonly onError?: (error: Error) => void
+  readonly onError: (error: Error) => void
+  readonly noWaitMode: boolean
 }
 
 interface BleConnectContext {
@@ -24,7 +26,7 @@ interface BleConnectContext {
 const handshake = setup({
   schemas: {
     context: types<BleConnectContext>(),
-    input: types<BleConnectConfiguration>(),
+    input: types<Partial<BleConnectConfiguration>>(),
     output: types<BluetoothRemoteGATTCharacteristic>(),
     events: {
       "system.success": types<{
@@ -40,8 +42,8 @@ const handshake = setup({
 }).createMachine({
   context: ({ input }) => {
     return {
-      serviceUuid: input.serviceUuid,
-      characteristicUuid: input.characteristicUuid,
+      serviceUuid: input.serviceUuid!,
+      characteristicUuid: input.characteristicUuid!,
     }
   },
   id: "handshake",
@@ -125,12 +127,10 @@ const steps = [
   },
 ]
 
-import PauseIcon from "@mui/icons-material/Pause"
 import {
   Box,
   Button,
   Container,
-  Fab,
   LinearProgress,
   Stack,
   Step,
@@ -144,12 +144,14 @@ import { MuiMarkdown } from "mui-markdown"
 import React from "react"
 
 import { useWait } from "@client/wait"
+import PauseControl from "@components/PauseControl"
 
 export default function BleConnect({
   serviceUuid,
   characteristicUuid,
   onCharacteristic,
   onError,
+  noWaitMode,
 }: BleConnectConfiguration) {
   const [state, send] = useMachine(handshake, {
     input: {
@@ -208,24 +210,24 @@ export default function BleConnect({
           <Step key={step.label}>
             <StepLabel>{step.label}</StepLabel>
             <StepContent sx={{ textAlign: "right" }}>
-              <Stack direction="row">
+              <Stack direction="row" spacing={-2}>
                 <Container>
-                  {index > 0 &&
-                    (waiting ? (
-                      <LinearProgress
-                        color="secondary"
-                        aria-label="Loading..."
-                      />
-                    ) : (
-                      <LinearProgress
-                        color="secondary"
-                        aria-label="Waiting..."
-                        variant="query"
-                      />
-                    ))}
+                  {index > 0 && (
+                    <LinearProgress
+                      color={
+                        waiting
+                          ? paused
+                            ? "warning"
+                            : "secondary"
+                          : "secondary"
+                      }
+                      aria-label="Waiting..."
+                      variant={waiting ? "query" : "indeterminate"}
+                    />
+                  )}
                   <MuiMarkdown>{step.description}</MuiMarkdown>
 
-                  <Box sx={{ mb: 2 }}>
+                  <Box>
                     {index === 0 && (
                       <Button
                         variant="contained"
@@ -238,14 +240,7 @@ export default function BleConnect({
                     )}
                   </Box>
                 </Container>
-                <Fab
-                  size="small"
-                  aria-label="pause"
-                  sx={{ mr: -4 }}
-                  onClick={(e) => setPaused(!paused)}
-                >
-                  <PauseIcon />
-                </Fab>
+                <PauseControl {...{ noWaitMode }} {...{ paused, setPaused }} />
               </Stack>
             </StepContent>
           </Step>

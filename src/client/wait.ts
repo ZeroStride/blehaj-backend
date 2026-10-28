@@ -53,6 +53,14 @@ export function useWait(options?: {
       return value
     }
 
+    function pollPause(resolve: () => void, pollInterval: number) {
+      if (localStorage.getItem("paused") === "true") {
+        setTimeout(pollPause, pollInterval, resolve, pollInterval)
+      } else {
+        resolve()
+      }
+    }
+
     const startedAt = performance.now()
     return value.then(function (resolvedValue) {
       const delta = performance.now() - startedAt
@@ -60,8 +68,10 @@ export function useWait(options?: {
         setWaiting(true)
         setTimeout(
           function (v) {
-            setWaiting(false)
-            resolve(v)
+            pollPause(function () {
+              setWaiting(false)
+              resolve(v)
+            }, POLL_INTERVAL)
           },
           Math.floor(ms - delta),
           resolvedValue

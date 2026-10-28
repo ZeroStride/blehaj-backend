@@ -16,7 +16,13 @@ import {
 } from "@mui/material"
 import React from "react"
 
-export default function BlehajAppBar() {
+export default function BlehajAppBar({
+  noWaitMode,
+  setNoWaitMode,
+}: {
+  noWaitMode: boolean
+  setNoWaitMode: React.Dispatch<React.SetStateAction<boolean>>
+}) {
   const [noReadingSnackbar, setNoReadingSnackbar] = React.useState(false)
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
@@ -38,11 +44,11 @@ export default function BlehajAppBar() {
   }
 
   const clickNoReading = () => {
-    if (localStorage.getItem("noWaitMode") === "true") {
-      localStorage.setItem("noWaitMode", "false")
+    if (noWaitMode) {
+      setNoWaitMode(false)
       setNoReadingSnackbar(false)
     } else {
-      localStorage.setItem("noWaitMode", "true")
+      setNoWaitMode(true)
       setNoReadingSnackbar(true)
     }
     setAnchorEl(null)
@@ -71,7 +77,7 @@ export default function BlehajAppBar() {
           🦈
         </Typography>
         <Typography variant="h3" component="div">
-          {localStorage.getItem("noWaitMode") === "true" && "⚡"}blehaj
+          {noWaitMode && "⚡"}blehaj
         </Typography>
         <div>
           <IconButton
@@ -103,9 +109,7 @@ export default function BlehajAppBar() {
           >
             <MenuItem onClick={clickNoReading}>
               <ListItemIcon>
-                {localStorage.getItem("noWaitMode") === "true" ? (
-                  <Check fontSize="small" />
-                ) : null}
+                {noWaitMode ? <Check fontSize="small" /> : null}
               </ListItemIcon>
               No Reading Mode
             </MenuItem>

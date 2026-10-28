@@ -14,6 +14,8 @@ import {
 } from "@mui/material"
 import Box from "@mui/material/Box"
 import { useMachine } from "@xstate/react"
+import { MuiMarkdown } from "mui-markdown"
+import React from "react"
 import { createRoot } from "react-dom/client"
 import { setup, StateFrom, types } from "xstate"
 import { z } from "zod"
@@ -25,7 +27,6 @@ import ReadConfigurationRequest from "@components/ReadConfigurationRequest"
 import WelcomeAndUuidInput, {
   uuidOrUndefined,
 } from "@components/WelcomeAndUuidInput"
-import { MuiMarkdown } from "mui-markdown"
 
 interface AppContext {
   characteristicUuid: string | null
@@ -174,6 +175,11 @@ function App() {
     },
   })
 
+  const [noWaitMode, setNoWaitMode] = React.useState(
+    localStorage.getItem("noWaitMode") === "true"
+  )
+  localStorage.setItem("noWaitMode", noWaitMode ? "true" : "false")
+
   const TodoRefactorComponent = () => {
     switch (app.value) {
       case "initialized":
@@ -191,8 +197,8 @@ function App() {
       case "configured":
         return (
           <BleConnect
-            serviceUuid={app.context.serviceUuid!}
-            characteristicUuid={app.context.characteristicUuid!}
+            {...{ noWaitMode }}
+            {...app.context}
             onCharacteristic={(characteristic) => {
               send({ type: "system.connected", characteristic })
             }}
@@ -248,7 +254,7 @@ function App() {
       }}
     >
       <Stack spacing={1} sx={{ width: 1 }}>
-        <BlehajAppBar />
+        <BlehajAppBar {...{ noWaitMode, setNoWaitMode }} />
         {app.value !== "initialized" && <CommonThingy snapshot={app} />}
         <Item>
           <TodoRefactorComponent />
