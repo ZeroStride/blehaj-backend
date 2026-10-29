@@ -1,7 +1,9 @@
 import "@fontsource/fira-code"
+import GitHubIcon from "@mui/icons-material/GitHub"
 import {
   createTheme,
   CssBaseline,
+  IconButton,
   Paper,
   Stack,
   Step,
@@ -244,6 +246,11 @@ function App() {
     }
   }
 
+  const Item = styled(Paper)(({ theme }) => ({
+    padding: theme.spacing(1),
+    color: (theme.vars ?? theme).palette.text.secondary,
+  }))
+
   return (
     <Box
       sx={{
@@ -252,7 +259,6 @@ function App() {
         maxWidth: 800,
         minWidth: 400,
         width: 2 / 3,
-        boxShadow: 5,
       }}
     >
       <Stack spacing={1} sx={{ width: 1 }}>
@@ -278,6 +284,14 @@ function App() {
             <Typography variant="h3">⚡</Typography>
           </Stack>
         )}
+      </Stack>
+      <Stack direction={"row"} sx={{ justifyContent: "end", m: 1 }}>
+        <IconButton
+          aria-label="github"
+          href="https://github.com/ZeroStride/blehaj-backend"
+        >
+          <GitHubIcon />
+        </IconButton>
       </Stack>
     </Box>
   )
@@ -310,11 +324,6 @@ const theme = createTheme({
     borderRadius: 6,
   },
 })
-
-const Item = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(1),
-  color: (theme.vars ?? theme).palette.text.secondary,
-}))
 
 const root = createRoot(document.getElementById("elysia")!)
 root.render(
