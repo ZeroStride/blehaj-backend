@@ -10,6 +10,7 @@ import index from "@public/index.html"
 import { BlehajRequest, contentTypeBlehaj } from "@server/blehajParser"
 import { log } from "@server/log"
 import { NetworkManagerConnectionBuilder } from "@server/networkManagerConnectionBuilder"
+import { serializeError } from "serialize-error"
 
 // Todo - This should probably get moved somewhere else along with the /api group
 interface Session {
@@ -62,7 +63,7 @@ export const app = new Elysia()
       .onAfterResponse(({ redis }) => {
         redis.then((redis) => redis.destroy())
       })
-      .post("/configure", async ({ body, status, set, redis, log }) => {
+      .post("/configure", ({ body, status, set, redis, log }) => {
         const request = body as BlehajRequest
 
         if (!request.request.NetworkManagerConfiguration) {
@@ -248,6 +249,10 @@ export const app = new Elysia()
           .then((compressed) => {
             log?.debug("compressed size", compressed.length)
             return compressed
+          })
+          .catch((e) => {
+            log?.error(e)
+            return status(500, serializeError(e))
           })
       })
   )
