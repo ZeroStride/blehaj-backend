@@ -1,5 +1,5 @@
 import { PinoTransport } from "@loglayer/transport-pino"
-import { getPrettyTerminal } from "@loglayer/transport-pretty-terminal"
+import { getPrettyTerminal, neon } from "@loglayer/transport-pretty-terminal"
 import { Database } from "bun:sqlite"
 import { LogLayer } from "loglayer"
 import { pino } from "pino"
@@ -28,8 +28,7 @@ export const log = new LogLayer({
     getPrettyTerminal({
       database: new Database(":memory:"),
       enabled: process.env.NODE_ENV === "development",
+      theme: neon,
     }),
   ],
 })
-
-log.withMetadata({ foo: "bar" }).info("Hello from Pretty Terminal!")

@@ -1,0 +1,3 @@
+[env]
+BLEHAJ_ORG_DEV = '' # JWK formatted key
+NODE_ENV = "development"
