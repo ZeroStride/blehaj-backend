@@ -1,4 +1,5 @@
 import { staticPlugin } from "@elysia/static"
+import { elysiaLogLayer } from "@loglayer/elysia"
 import { encode as msgpackEncode } from "@msgpack/msgpack"
 import { createClient as redisClient } from "@redis/client"
 import { Elysia } from "elysia"
@@ -7,7 +8,15 @@ const { createCipheriv, createDecipheriv } = await import("node:crypto")
 
 import index from "@public/index.html"
 import { BlehajRequest, contentTypeBlehaj } from "@server/blehajParser"
+import { log } from "@server/log"
 import { NetworkManagerConnectionBuilder } from "@server/networkManagerConnectionBuilder"
+
+// Todo - This should probably get moved somewhere else along with the /api group
+interface Session {
+  device: string
+  capsul?: Buffer
+  interface: string
+}
 
 export const app = new Elysia()
   .use(
@@ -20,11 +29,13 @@ export const app = new Elysia()
   .get("/:uuid", index)
   .group("/api", (app) =>
     app
+      .use(elysiaLogLayer({ instance: log }))
       .use(
         contentTypeBlehaj({
+          log: log,
           keyResolver: ({ identifier, algorithm, extractable, keyUsages }) => {
             // Todo - This would fetch from the database using 'identifier'
-            console.log(`resolving key for ${identifier}`)
+            log?.debug("fetching key")
             const key_bytes = Uint8Array.fromHex(
               "731e93151e81e645fd6ba7642c57d7551d9fb5d167f796e039727c97e1f1a70e"
             )
@@ -39,19 +50,19 @@ export const app = new Elysia()
           },
         })
       )
-      .resolve(() => {
+      .resolve(({ log }) => {
         return {
           redis: redisClient({
             url: process.env.REDIS_URL || "redis://localhost:6379",
           })
-            .on("error", (err) => console.error("redis:", err))
+            .on("error", (err) => log?.withGroup("redis").error(err))
             .connect(),
         }
       })
       .onAfterResponse(({ redis }) => {
         redis.then((redis) => redis.destroy())
       })
-      .post("/configure", async ({ body, status, set, redis }) => {
+      .post("/configure", async ({ body, status, set, redis, log }) => {
         const request = body as BlehajRequest
 
         if (!request.request.NetworkManagerConfiguration) {
@@ -69,13 +80,18 @@ export const app = new Elysia()
           )
         }
 
+        log
+          ?.withMetadata({
+            interface: configurationRequest.interface,
+          })
+          .info("starting configuration session")
+
         return redis
           .then((redis) => {
             if (!configurationRequest.capsul) {
-              console.warn(
+              log?.warn(
                 "device did not provide an encapsulation key, proceeding without encryption"
               )
-              return null
             }
 
             // Write encapsulation key (for now) into ephemeral session
@@ -83,18 +99,27 @@ export const app = new Elysia()
             // Todo - Write in other contextual information, like "device asked for wifi etc"
             //        goal is to give opportunity for background workers to do things if needed
             //        while the web app collects any needed input.
-            const session = Bun.randomUUIDv7()
-            return redis.set(session, configurationRequest.capsul.toHex())
+            const session_id = Bun.randomUUIDv7()
+            return Promise.all([
+              session_id,
+              redis.hSet(session_id, {
+                device: request.identifier,
+                interface: configurationRequest.interface,
+                ...(configurationRequest.capsul && {
+                  capsul: Buffer.from(configurationRequest.capsul),
+                }),
+              }),
+            ])
           })
-          .then((session) => {
-            console.log("created session", session)
+          .then(([session, _]) => {
+            log?.debug("created session", session)
             return {
-              configuration_parameters: "wifi",
               session,
+              configuration_parameters: "wifi",
             }
           })
       })
-      .post("/session", async ({ body, status, redis }) => {
+      .post("/session", async ({ body, status, redis, log }) => {
         const { session, ssid, security, psk } = body as {
           session: string
           ssid: string
@@ -120,14 +145,14 @@ export const app = new Elysia()
 
         return redis
           .then((redis) => {
-            if (!session) {
-              return [null, null] as unknown as [typeof redis, string]
-            }
-
-            return Promise.all([redis, redis.get(session)])
+            log?.withContext({ session }).info("resuming session")
+            return Promise.all([
+              redis,
+              redis.hGetAll(session) as unknown as Promise<Session>,
+            ])
           })
-          .then(([redis, device_ek]) => {
-            if (!device_ek) {
+          .then(([redis, session]) => {
+            if (!session || !session.capsul) {
               return [
                 new Uint8Array(0),
                 new Uint8Array(0),
@@ -135,17 +160,12 @@ export const app = new Elysia()
               ] as [Uint8Array, Uint8Array, Buffer]
             }
 
-            try {
-              redis.set(session, "\0".repeat(device_ek.length))
-            } catch {
-              console.warn("failed to zero-out session contents")
-            }
-
-            const ek_bytes = Uint8Array.fromHex(device_ek)
+            log?.debug("creating server encapsulation key")
             return createMlKem768()
-              .then((mlKemInterface) => mlKemInterface.encap(ek_bytes))
+              .then((mlKemInterface) => mlKemInterface.encap(session.capsul!))
               .then(([ciphertext, sharedSecret]) => {
                 const nonce = crypto.getRandomValues(new Uint8Array(32))
+                log?.withMetadata({ nonce }).debug("encrypting configuration")
                 const cipher = createCipheriv(
                   "aes-256-gcm",
                   sharedSecret,
@@ -162,6 +182,8 @@ export const app = new Elysia()
               })
           })
           .then(([nonce, ciphertext, connection_configuration]) => {
+            log?.debug("loading signing key")
+
             // Bun.file("foo.txt", "application/octet-stream")
             if (!process.env.BLEHAJ_ORG_DEV) {
               return [
@@ -187,6 +209,7 @@ export const app = new Elysia()
           })
           .then(([nonce, ciphertext, connection_configuration, key]) => {
             if (!key) {
+              log?.warn("signing key could not be found/created")
               return [
                 nonce,
                 ciphertext,
@@ -195,6 +218,7 @@ export const app = new Elysia()
               ] as unknown as [Uint8Array, Uint8Array, Buffer, Uint8Array]
             }
 
+            log?.debug("signing reply")
             return Promise.all([
               nonce,
               ciphertext,
@@ -210,8 +234,9 @@ export const app = new Elysia()
                 .then((sig) => new Uint8Array(sig)),
             ])
           })
-          .then(([nonce, ciphertext, connection_configuration, sig]) =>
-            Bun.zstdCompress(
+          .then(([nonce, ciphertext, connection_configuration, sig]) => {
+            log?.debug("encoding and compressing reply")
+            return Bun.zstdCompress(
               msgpackEncode({
                 nonce,
                 ciphertext,
@@ -219,14 +244,13 @@ export const app = new Elysia()
                 sig,
               })
             )
-          )
+          })
           .then((compressed) => {
-            console.log(`compressed size ${compressed.length}`)
+            log?.debug("compressed size", compressed.length)
             return compressed
           })
       })
   )
-
   .listen(3000)
 
 console.log(

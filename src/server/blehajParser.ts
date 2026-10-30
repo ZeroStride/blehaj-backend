@@ -1,5 +1,6 @@
 import { decode as decodeMsgpack } from "@msgpack/msgpack"
 import Elysia, { ParseError } from "elysia"
+import { ILogLayer } from "loglayer"
 
 // https://developer.mozilla.org/docs/Web/API/SubtleCrypto/importKey)
 export interface KeyResolverContext {
@@ -16,6 +17,7 @@ export interface KeyResolverContext {
 
 export interface PluginOptions {
   keyResolver?: (ctx: KeyResolverContext) => Promise<CryptoKey>
+  log?: ILogLayer
 }
 
 export interface BlehajRequest {
@@ -41,10 +43,11 @@ export const contentTypeBlehaj = (options?: PluginOptions) =>
       }
       throw error
     })
-    .parser("blehaj", async (ctx) => parseBlehaj(ctx, options || {}))
-    .onParse(async (ctx) => {
-      if (ctx.contentType === "application/blehaj")
+    .parser("blehaj", (ctx) => parseBlehaj(ctx, options || {}))
+    .onParse((ctx) => {
+      if (ctx.contentType === "application/blehaj") {
         return parseBlehaj(ctx, options || {})
+      }
     })
     .as("global")
 
@@ -52,7 +55,7 @@ export default contentTypeBlehaj
 
 async function parseBlehaj(
   { request }: { request: Request },
-  { keyResolver }: PluginOptions & { scope?: string }
+  { keyResolver, log }: PluginOptions & { scope?: string }
 ): Promise<BlehajRequest> {
   interface Envelope {
     identifier: string
@@ -66,11 +69,17 @@ async function parseBlehaj(
   }
 
   const bodyAsArrayBuffer = await Bun.readableStreamToArrayBuffer(request.body!)
-
-  console.log(`decompressing body, length: ${bodyAsArrayBuffer.byteLength}`)
+  log
+    ?.withGroup("parser")
+    .withMetadata({ bodyLength: bodyAsArrayBuffer.byteLength })
+    .info("decompressing application/blehaj")
   return Bun.zstdDecompress(bodyAsArrayBuffer)
-    .then((decompressed) => decodeMsgpack(decompressed) as SignedPayload)
+    .then((decompressed) => {
+      log?.withGroup("parser").debug("decoding signed payload")
+      return decodeMsgpack(decompressed) as SignedPayload
+    })
     .then((signedEnvelope) => {
+      log?.withGroup("parser").debug("decoding envelope")
       const envelope = decodeMsgpack(signedEnvelope.payload) as Envelope
 
       if (
@@ -85,20 +94,30 @@ async function parseBlehaj(
           const sig_bytes = Uint8Array.fromHex(signedEnvelope.signature)
           const algorithm = { name: "Ed25519" }
 
+          log
+            ?.withGroup("parser")
+            .withMetadata({
+              identifier: envelope.identifier,
+            })
+            .debug("resolving key")
           return keyResolver({
             identifier: envelope.identifier,
             algorithm,
             extractable: false,
             keyUsages: ["verify"],
           })
-            .then((key) =>
-              crypto.subtle.verify(
+            .then((key) => {
+              log
+                ?.withGroup("parser")
+                .withMetadata({ sig: signedEnvelope.signature })
+                .debug("verifying signature")
+              return crypto.subtle.verify(
                 algorithm,
                 key,
                 sig_bytes,
                 Buffer.from(signedEnvelope.payload)
               )
-            )
+            })
             .then((matched) => {
               if (!matched) {
                 throw new SignatureMismatchError("Signature mismatch")
@@ -107,12 +126,23 @@ async function parseBlehaj(
               return envelope
             })
         } else {
-          console.warn(
-            `device ${envelope.identifier} is sending signed requests but parser is configured without 'keyResolver', so it can't be validated`
-          )
+          log
+            ?.withGroup("parser")
+            .withMetadata({
+              identifier: envelope.identifier,
+            })
+            .warn(
+              `device is sending signed requests but parser is configured without 'keyResolver', so it can't be validated`
+            )
           return envelope
         }
       } else {
+        log
+          ?.withGroup("parser")
+          .withMetadata({
+            identifier: envelope.identifier,
+          })
+          .debug("unsigned request")
         return envelope
       }
     })
