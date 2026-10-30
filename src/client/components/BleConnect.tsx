@@ -95,9 +95,9 @@ const handshake = setup({
 
 const steps = [
   {
-    label: "Press Connect to Begin",
-    description: `In order to use the [Web Bluetooth API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API) it must be
-                  called as a result of user input. This is a restriction of the browser, to make sure that web apps don't abuse Bluetooth.`,
+    label: "Press Connect to Start Scanning",
+    description: `In order to use the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API" target="_blank">Web Bluetooth API</a> the scan must be
+                  initiated as a result of user input. This is a restriction of the browser, to make sure that web apps don't abuse Bluetooth.`,
   },
   {
     label: "Searching for Device",

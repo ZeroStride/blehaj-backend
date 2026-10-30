@@ -25,7 +25,7 @@ export interface BlehajRequest {
 }
 
 export interface BlehajRequestType {
-  NetworkManagerConfiguration: { interface: string }
+  NetworkManagerConfiguration: { interface: string; capsul: Uint8Array }
 }
 
 export const contentTypeBlehaj = (options?: PluginOptions) =>
@@ -67,6 +67,7 @@ async function parseBlehaj(
 
   const bodyAsArrayBuffer = await Bun.readableStreamToArrayBuffer(request.body!)
 
+  console.log(`decompressing body, length: ${bodyAsArrayBuffer.byteLength}`)
   return Bun.zstdDecompress(bodyAsArrayBuffer)
     .then((decompressed) => decodeMsgpack(decompressed) as SignedPayload)
     .then((signedEnvelope) => {

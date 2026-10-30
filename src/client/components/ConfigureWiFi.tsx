@@ -18,39 +18,37 @@ import PauseControl from "@components/PauseControl"
 
 const steps = [
   {
-    label: "Talking to Device",
-    description: `Getting the value from the GATT Characteristic`,
+    label: "Scan QR code or Enter Manually",
+    description: `The server needs to know what WiFi network the device should connect to. How should we gather that?`,
   },
   {
-    label: "Gathering Required Information",
-    description:
-      "The server needs to know what WiFi network it should tell the device to connect to.",
+    label: "Code Scanner",
+    description: "Scan a WiFi QR code.",
   },
   {
-    label: "Passing Value to Server",
-    description: `The value retrieved from the GATT Characteristic is enrypted, using [ML-KEM](https://en.wikipedia.org/wiki/ML-KEM)
-                        encryption, also known as \`Kyber\`. This means that the web application can't read it, but the backend server can.`,
+    label: "Sending WiFi info to Server",
+    description: `Now sending the WiFi information provided to the server. It will use the encapsulated key (that the device sent) 
+                  to create an encrypted configuration specifically for that device, that only it can read.`,
   },
   {
     label: "Waiting for Reply",
-    description: `The server is decrypting the request from the device, and then it will tell the web app what information it needs from
-                        the user.`,
+    description: `The server will also send along its own encapsulated key, and a signature, so that the device knows it comes from an authoritative source.`,
   },
   {
     label: "Passing Value to Device",
-    description: `The value from the server is also encrypted ([ML-KEM](https://en.wikipedia.org/wiki/ML-KEM))
-                  The web application can't read it, but the device can.`,
+    description: `The encryption is AES-256-GCM, using the shared secret from the ML-KEM exchange; and then signed using provisioned Ed25519 keys.
+                  Post-quantum secure, and authenticated communication.`,
   },
 ]
 
 export default function ConfigureWiFi({
   characteristic,
-  nonce,
+  session,
   onComplete,
   noWaitMode,
 }: {
   characteristic?: BluetoothRemoteGATTCharacteristic
-  nonce: string
+  session: string
   onComplete?: (confirmation: object) => void
   noWaitMode: boolean
 }) {
@@ -74,24 +72,13 @@ export default function ConfigureWiFi({
   }) {
     setActiveStep(2)
 
-    await characteristic?.startNotifications().then(() => {
-      characteristic.addEventListener(
-        "characteristicvaluechanged",
-        async (ev) => {
-          setActiveStep(4)
-          await waitAtLeast(3000, characteristic.stopNotifications())
-          onComplete?.call(null, ev)
-        }
-      )
-    })
-
-    await fetch("/api/nonce", {
+    await fetch("/api/session", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        nonce,
+        session,
         ssid,
         security,
         psk,
@@ -105,6 +92,11 @@ export default function ConfigureWiFi({
       })
       .then((body) => wait(3000, body))
       .then((body) => characteristic?.writeValue(body))
+      .then(() => {})
+      .then(() => wait(3000, null))
+      .then(() => {
+        onComplete?.call(null, {})
+      })
       .catch((error) => console.error(error))
   }
 

@@ -146,7 +146,12 @@ export default function WelcomeAndUuidInput({
               <MuiMarkdown>
                 Invalid UUID format. This value needs to be either a full UUID,
                 or a Bluetoooth Service value which is accepted by
-                [BluetoothUUID.getService](https://developer.mozilla.org/en-US/docs/Web/API/BluetoothUUID/getService_static)
+                <a
+                  href="https://developer.mozilla.org/en-US/docs/Web/API/BluetoothUUID/getService_static"
+                  target="_blank"
+                >
+                  BluetoothUUID.getService
+                </a>
               </MuiMarkdown>
             </Alert>
           )}

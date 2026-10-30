@@ -1,4 +1,3 @@
-import PauseControl from "@components/PauseControl"
 import {
   Container,
   LinearProgress,
@@ -9,6 +8,8 @@ import {
   Stepper,
 } from "@mui/material"
 import { MuiMarkdown } from "mui-markdown"
+
+import PauseControl from "@components/PauseControl"
 
 export default function MarkdownStepper({
   activeStep,

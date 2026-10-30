@@ -6,16 +6,18 @@ import MarkdownStepper from "@components/MarkdownStepper"
 const steps = [
   {
     label: "Talking to Device",
-    description: `Getting the value from the GATT Characteristic`,
+    description: `Getting the value from the GATT Characteristic. This is a request for configuration, signed with the device's
+                  <a href="https://en.wikipedia.org/wiki/EdDSA#Ed25519" target="_blank">Ed25519</a> signing key. The signature lets the server know that the message it gets passed is authentic, since
+                  that message is going to be relayed via the Smartphone.`,
   },
   {
     label: "Passing Value to Server",
-    description: `The value retrieved from the GATT Characteristic is enrypted, using [ML-KEM](https://en.wikipedia.org/wiki/ML-KEM)
-                        encryption, also known as \`Kyber\`. This means that the web application can't read it, but the backend server can.`,
+    description: `The device is also sending along an <a href="https://en.wikipedia.org/wiki/ML-KEM" target="_blank">ML-KEM</a> encapsulation key. This will alllow the server to reply
+                  with an encrypted configuration, that cannot be read by the Smartphone which is relaying the data (or any other observer).`,
   },
   {
     label: "Waiting for Reply",
-    description: `The server is decrypting the request from the device, and then it will tell the web app what information it needs from
+    description: `The server is processing from the device, and then it will tell the web app what information it needs from
                         the user.`,
   },
 ]
@@ -28,10 +30,10 @@ export default function ReadConfigurationRequest({
   characteristic?: BluetoothRemoteGATTCharacteristic
   onComplete?: ({
     configuration_parameters,
-    nonce,
+    session,
   }: {
     configuration_parameters: string
-    nonce: string
+    session: string
   }) => void
   noWaitMode: boolean
 }) {

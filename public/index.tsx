@@ -34,7 +34,7 @@ interface AppContext {
   characteristicUuid: string | null
   serviceUuid?: string
   characteristic?: BluetoothRemoteGATTCharacteristic
-  nonce?: string
+  session?: string
 }
 
 const appMachine = setup({
@@ -53,7 +53,7 @@ const appMachine = setup({
       "system.reset": z.object({}),
       "system.request_configuration": z.object({
         configuration_parameters: z.string(),
-        nonce: z.uuidv7(),
+        session: z.uuidv7(),
       }),
       "system.complete": z.object({ confirmation: z.any() }),
     },
@@ -112,7 +112,7 @@ const appMachine = setup({
           }
 
           return {
-            context: { nonce: event.nonce },
+            context: { session: event.session },
             target: "configure_wifi",
           }
         },
@@ -219,7 +219,7 @@ function App() {
               send({
                 type: "system.request_configuration",
                 configuration_parameters: json.configuration_parameters,
-                nonce: json.nonce,
+                session: json.session,
               })
             }
           />
@@ -229,7 +229,7 @@ function App() {
           <ConfigureWiFi
             {...{ noWaitMode }}
             {...app.context}
-            nonce={app.context.nonce!}
+            session={app.context.session!}
             onComplete={(confirmation) => {
               console.log("all done", confirmation)
               send({ type: "system.complete", confirmation: confirmation })
@@ -269,7 +269,7 @@ function App() {
           <Typography
             variant="caption"
             component="div"
-            sx={{ textAlign: "right" }}
+            sx={{ textAlign: "right", pt: 0.5 }}
           >
             {app.context.serviceUuid}
           </Typography>
@@ -289,6 +289,7 @@ function App() {
         <IconButton
           aria-label="github"
           href="https://github.com/ZeroStride/blehaj-backend"
+          target="_blank"
         >
           <GitHubIcon />
         </IconButton>
