@@ -27,9 +27,9 @@ export const app = new Elysia()
     })
   )
   .get("/:uuid", index)
+  .use(elysiaLogLayer({ instance: log }))
   .group("/api", (app) =>
     app
-      .use(elysiaLogLayer({ instance: log }))
       .use(
         contentTypeBlehaj({
           log: log,
