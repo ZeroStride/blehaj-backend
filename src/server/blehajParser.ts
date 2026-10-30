@@ -31,7 +31,7 @@ export interface BlehajRequestType {
 }
 
 export const contentTypeBlehaj = (options?: PluginOptions) =>
-  new Elysia()
+  new Elysia({ name: "blehaj-parser" })
     .state("plugin-version", 1)
     .error({ 403: SignatureMismatchError, 422: UnsupportedAlgorithmError })
     .onError(({ error }) => {
