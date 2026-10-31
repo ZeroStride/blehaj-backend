@@ -131,10 +131,9 @@ export const app = new Elysia()
         let connectionConfiguration
         switch (security.toLowerCase()) {
           case "wpa":
-            connectionConfiguration = builder.withWPA_PSK(psk!).build()
+            connectionConfiguration = builder.withWPA_PSK(psk!)
             break
           case "none":
-            connectionConfiguration = builder.build()
             break
           default:
             return status(
@@ -142,19 +141,14 @@ export const app = new Elysia()
               `Don't know how to configure ${security} security type`
             )
         }
+        connectionConfiguration = builder.build()
 
-        // const sizeCmpMsgPack = Bun.zstdCompressSync(
-        //   msgpackEncode(connectionConfiguration)
-        // )
-        // const sizeCmpJson = Bun.zstdCompressSync(
-        //   JSON.stringify(connectionConfiguration)
-        // )
-        // log
-        //   ?.withMetadata({
-        //     asJson: sizeCmpJson.byteLength,
-        //     asMsgPack: sizeCmpMsgPack.byteLength,
-        //   })
-        //   .info("encoding size comparison")
+        const encodedConnectionConfiguration = msgpackEncode(
+          connectionConfiguration
+        )
+        log
+          ?.withMetadata({ size: encodedConnectionConfiguration.byteLength })
+          .debug("configuration encoded")
 
         return redis
           .then((redis) => {
@@ -166,7 +160,7 @@ export const app = new Elysia()
               return [
                 new Uint8Array(0),
                 new Uint8Array(0),
-                Buffer.from(msgpackEncode(connectionConfiguration)),
+                Buffer.from(encodedConnectionConfiguration),
               ] as [Uint8Array, Uint8Array, Buffer]
             }
 
@@ -178,11 +172,13 @@ export const app = new Elysia()
                 mlKemInterface.encap(Uint8Array.fromHex(session.public_key!))
               )
               .then(([ciphertext, sharedSecret]) => {
-                const nonce = crypto.getRandomValues(new Uint8Array(32))
+                const nonce = crypto.getRandomValues(new Uint8Array(12)) // 12 byte nonce for AES-256-GCM
+
                 log
                   ?.withMetadata({
                     nonce: nonce.toHex(),
                     sharedSecret: sharedSecret.toHex(),
+                    len: encodedConnectionConfiguration.byteLength,
                   })
                   .debug("encrypting configuration")
                 const cipher = createCipheriv(
@@ -190,14 +186,21 @@ export const app = new Elysia()
                   sharedSecret,
                   nonce
                 )
-                let connection_configuration = cipher.update(
-                  msgpackEncode(connectionConfiguration)
-                )
-                return [
-                  nonce,
-                  ciphertext,
-                  Buffer.concat([connection_configuration, cipher.final()]),
-                ] as [Uint8Array, Uint8Array, Buffer]
+                const connection_configuration = Buffer.concat([
+                  cipher.update(encodedConnectionConfiguration),
+                  cipher.final(),
+                  cipher.getAuthTag(), // Tag position is postfix
+                ])
+                log
+                  ?.withMetadata({
+                    len: connection_configuration.byteLength,
+                  })
+                  .debug("encrypted configuration + postfix tag")
+                return [nonce, ciphertext, connection_configuration] as [
+                  Uint8Array,
+                  Uint8Array,
+                  Buffer,
+                ]
               })
           })
           .then(([nonce, ciphertext, connection_configuration]) => {
@@ -254,6 +257,15 @@ export const app = new Elysia()
             ])
           })
           .then(([nonce, ciphertext, connection_configuration, sig]) => {
+            log
+              ?.withMetadata({
+                "nonce.length": nonce.byteLength,
+                "ciphertext.length": ciphertext.byteLength,
+                "connection_configuration.length":
+                  connection_configuration.byteLength,
+                "sig.length": sig.byteLength,
+              })
+              .debug("encoding reply struct")
             const encoded = msgpackEncode({
               nonce,
               ciphertext,
