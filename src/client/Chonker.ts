@@ -46,7 +46,7 @@ export async function writeChonked(
   var promiseChain = null
   var offset = 0
   const num_chonks = Math.ceil(data.byteLength / chonk_size)
-  console.log("chonking data", { num_chonks })
+  // console.log("chonking data", { num_chonks })
   for (var i = 0; i < num_chonks; i++) {
     var flags = 0
     if (i === 0) {
@@ -60,12 +60,12 @@ export async function writeChonked(
     const slice = data.slice(offset, offset + len)
     offset += len
     var chonk = encodeMsgpack([flags, new Uint8Array(slice)])
-    console.log("pushing chonk", {
-      chonk: i,
-      len,
-      flags,
-      byteLength: chonk.byteLength,
-    })
+    // console.log("pushing chonk", {
+    //   chonk: i,
+    //   len,
+    //   flags,
+    //   byteLength: chonk.byteLength,
+    // })
     if (chonk.byteLength > bluetooth_mtu) {
       throw new Error(`messed up the math ${chonk.byteLength}`)
     }
