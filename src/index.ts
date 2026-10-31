@@ -14,8 +14,8 @@ import { NetworkManagerConnectionBuilder } from "@server/networkManagerConnectio
 // Todo - This should probably get moved somewhere else along with the /api group
 interface Session {
   device: string
-  capsul?: Buffer
   interface: string
+  public_key?: string
 }
 
 export const app = new Elysia()
@@ -87,8 +87,8 @@ export const app = new Elysia()
           .info("starting configuration session")
 
         return redis
-          .then((redis) => {
-            if (!configurationRequest.capsul) {
+          .then(async (redis) => {
+            if (!configurationRequest.public_key) {
               log?.warn(
                 "device did not provide an encapsulation key, proceeding without encryption"
               )
@@ -105,8 +105,8 @@ export const app = new Elysia()
               redis.hSet(session_id, {
                 device: request.identifier,
                 interface: configurationRequest.interface,
-                ...(configurationRequest.capsul && {
-                  capsul: Buffer.from(configurationRequest.capsul),
+                ...(configurationRequest.public_key && {
+                  public_key: configurationRequest.public_key.toHex(),
                 }),
               }),
             ])
@@ -143,16 +143,26 @@ export const app = new Elysia()
             )
         }
 
+        // const sizeCmpMsgPack = Bun.zstdCompressSync(
+        //   msgpackEncode(connectionConfiguration)
+        // )
+        // const sizeCmpJson = Bun.zstdCompressSync(
+        //   JSON.stringify(connectionConfiguration)
+        // )
+        // log
+        //   ?.withMetadata({
+        //     asJson: sizeCmpJson.byteLength,
+        //     asMsgPack: sizeCmpMsgPack.byteLength,
+        //   })
+        //   .info("encoding size comparison")
+
         return redis
           .then((redis) => {
             log?.withContext({ session }).info("resuming session")
-            return Promise.all([
-              redis,
-              redis.hGetAll(session) as unknown as Promise<Session>,
-            ])
+            return redis.hGetAll(session) as unknown as Promise<Session>
           })
-          .then(([redis, session]) => {
-            if (!session || !session.capsul) {
+          .then((session) => {
+            if (!session || !session.public_key) {
               return [
                 new Uint8Array(0),
                 new Uint8Array(0),
@@ -160,9 +170,13 @@ export const app = new Elysia()
               ] as [Uint8Array, Uint8Array, Buffer]
             }
 
-            log?.debug("creating server encapsulation key")
+            log?.debug(
+              "creating ciphertext & shared secret from encapsulated key"
+            )
             return createMlKem768()
-              .then((mlKemInterface) => mlKemInterface.encap(session.capsul!))
+              .then((mlKemInterface) =>
+                mlKemInterface.encap(Uint8Array.fromHex(session.public_key!))
+              )
               .then(([ciphertext, sharedSecret]) => {
                 const nonce = crypto.getRandomValues(new Uint8Array(32))
                 log?.withMetadata({ nonce }).debug("encrypting configuration")
@@ -172,7 +186,8 @@ export const app = new Elysia()
                   nonce
                 )
                 let connection_configuration = cipher.update(
-                  msgpackEncode(connectionConfiguration)
+                  // msgpackEncode(connectionConfiguration)  // TEMPORARY HACK
+                  msgpackEncode({ message: "hello" })
                 )
                 return [
                   nonce,
@@ -235,18 +250,21 @@ export const app = new Elysia()
             ])
           })
           .then(([nonce, ciphertext, connection_configuration, sig]) => {
-            log?.debug("encoding and compressing reply")
-            return Bun.zstdCompress(
-              msgpackEncode({
-                nonce,
-                ciphertext,
-                connection_configuration,
-                sig,
-              })
-            )
+            const encoded = msgpackEncode({
+              nonce,
+              ciphertext,
+              connection_configuration,
+              sig,
+            })
+            log
+              ?.withMetadata({ length: encoded.byteLength })
+              .debug("encoded reply")
+            return Bun.zstdCompress(encoded)
           })
           .then((compressed) => {
-            log?.debug("compressed size", compressed.length)
+            log
+              ?.withMetadata({ length: compressed.length })
+              .debug("compressed reply")
             return compressed
           })
       })

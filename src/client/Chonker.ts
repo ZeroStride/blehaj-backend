@@ -7,6 +7,8 @@ export async function readChonked(
   return characteristic.readValue().then(function (value) {
     const raw = decodeMsgpack(value)
     const [flags, chonk] = raw as [number, Uint8Array]
+
+    // Todo - Blob is really inelegant but oh well
     const blobPart = new Blob([chonk as BlobPart])
 
     if (flags & 1) {

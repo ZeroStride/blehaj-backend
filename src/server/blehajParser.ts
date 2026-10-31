@@ -27,7 +27,7 @@ export interface BlehajRequest {
 }
 
 export interface BlehajRequestType {
-  NetworkManagerConfiguration: { interface: string; capsul: Uint8Array }
+  NetworkManagerConfiguration: { interface: string; public_key: Uint8Array }
 }
 
 export const contentTypeBlehaj = (options?: PluginOptions) =>
