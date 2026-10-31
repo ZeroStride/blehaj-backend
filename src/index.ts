@@ -25,6 +25,10 @@ export const app = new Elysia()
       await staticPlugin({
         bunFullstack: true,
         prefix: "/",
+        headers: {
+          "Access-Control-Allow-Origin":
+            "https://static.cloudflareinsights.com/*",
+        },
       })
   )
   .get("/:uuid", index)
