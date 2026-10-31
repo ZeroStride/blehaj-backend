@@ -2,9 +2,9 @@ import { staticPlugin } from "@elysia/static"
 import { elysiaLogLayer } from "@loglayer/elysia"
 import { encode as msgpackEncode } from "@msgpack/msgpack"
 import { createClient as redisClient } from "@redis/client"
+import { createCipheriv } from "crypto"
 import { Elysia } from "elysia"
 import { createMlKem768 } from "mlkem"
-const { createCipheriv, createDecipheriv } = await import("node:crypto")
 
 import index from "@public/index.html"
 import { BlehajRequest, contentTypeBlehaj } from "@server/blehajParser"
@@ -20,11 +20,12 @@ interface Session {
 
 export const app = new Elysia()
   .use(
-    // Future-ezri: Do not remove this 'await' it breaks shit
-    await staticPlugin({
-      bunFullstack: true,
-      prefix: "/",
-    })
+    async () =>
+      // Future-ezri: Do not remove this 'await' it breaks shit
+      await staticPlugin({
+        bunFullstack: true,
+        prefix: "/",
+      })
   )
   .get("/:uuid", index)
   .use(elysiaLogLayer({ instance: log }))

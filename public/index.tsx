@@ -231,7 +231,6 @@ function App() {
             {...app.context}
             session={app.context.session!}
             onComplete={(confirmation) => {
-              console.log("all done", confirmation)
               send({ type: "system.complete", confirmation: confirmation })
             }}
           />
