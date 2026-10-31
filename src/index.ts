@@ -179,15 +179,19 @@ export const app = new Elysia()
               )
               .then(([ciphertext, sharedSecret]) => {
                 const nonce = crypto.getRandomValues(new Uint8Array(32))
-                log?.withMetadata({ nonce }).debug("encrypting configuration")
+                log
+                  ?.withMetadata({
+                    nonce: nonce.toHex(),
+                    sharedSecret: sharedSecret.toHex(),
+                  })
+                  .debug("encrypting configuration")
                 const cipher = createCipheriv(
                   "aes-256-gcm",
                   sharedSecret,
                   nonce
                 )
                 let connection_configuration = cipher.update(
-                  // msgpackEncode(connectionConfiguration)  // TEMPORARY HACK
-                  msgpackEncode({ message: "hello" })
+                  msgpackEncode(connectionConfiguration)
                 )
                 return [
                   nonce,

@@ -13,6 +13,7 @@ import { Scanner } from "@yudiel/react-qr-scanner"
 import { MuiMarkdown } from "mui-markdown"
 import React, { useEffect } from "react"
 
+import { writeChonked } from "@client/Chonker"
 import { useWait } from "@client/wait"
 import PauseControl from "@components/PauseControl"
 
@@ -91,7 +92,7 @@ export default function ConfigureWiFi({
         return body
       })
       .then((body) => wait(3000, body))
-      .then((body) => characteristic?.writeValue(body))
+      .then((body) => writeChonked(body, characteristic!))
       .then(() => {})
       .then(() => wait(3000, null))
       .then(() => {
