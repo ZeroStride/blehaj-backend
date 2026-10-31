@@ -27,7 +27,7 @@ export const app = new Elysia()
         prefix: "/",
         headers: {
           "Access-Control-Allow-Origin":
-            "https://static.cloudflareinsights.com/*",
+            "https://static.cloudflareinsights.com",
         },
       })
   )
