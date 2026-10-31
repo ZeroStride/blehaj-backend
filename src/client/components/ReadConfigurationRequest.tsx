@@ -1,5 +1,6 @@
 import React from "react"
 
+import { readChonked } from "@client/Chonker"
 import { useWait } from "@client/wait"
 import MarkdownStepper from "@components/MarkdownStepper"
 
@@ -43,17 +44,17 @@ export default function ReadConfigurationRequest({
   React.useEffect(() => {
     setActiveStep(0)
 
-    characteristic
-      ?.readValue()
-      .then((value) => wait(3000, value))
-      .then((value) => {
+    readChonked(characteristic!)
+      .then((blob) => blob.bytes())
+      .then((bytes) => wait(3000, bytes))
+      .then((bytes) => {
         setActiveStep(1)
         return fetch("/api/configure", {
           method: "POST",
           headers: {
             "Content-Type": "application/blehaj",
           },
-          body: value.buffer as BodyInit,
+          body: bytes,
         })
       })
       .then((response) => wait(3000, response))
