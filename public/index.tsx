@@ -35,6 +35,7 @@ interface AppContext {
   serviceUuid?: string
   characteristic?: BluetoothRemoteGATTCharacteristic
   session?: string
+  useEmulator?: boolean
 }
 
 const appMachine = setup({
@@ -45,7 +46,10 @@ const appMachine = setup({
       characteristicUuid: z.uuid(),
     }),
     events: {
-      "input.serviceUuid": z.object({ serviceUuid: z.uuid() }),
+      "input.serviceUuid": z.object({
+        serviceUuid: z.uuid(),
+        useEmulator: z.boolean(),
+      }),
       "system.connected": types<{
         characteristic: BluetoothRemoteGATTCharacteristic
       }>(),
@@ -71,7 +75,10 @@ const appMachine = setup({
     initialized: {
       on: {
         "input.serviceUuid": ({ event }) => ({
-          context: { serviceUuid: event.serviceUuid },
+          context: {
+            serviceUuid: event.serviceUuid,
+            useEmulator: event.useEmulator,
+          },
           target: "configured",
         }),
         "internal.configured": { target: "configured" },
@@ -187,11 +194,12 @@ function App() {
       case "initialized":
         return (
           <WelcomeAndUuidInput
-            onUuid={(uuid, simulate) => {
+            onUuid={(uuid, useEmulator) => {
               history.pushState({}, "", uuid)
               send({
                 type: "input.serviceUuid",
                 serviceUuid: uuid,
+                useEmulator,
               })
             }}
           />

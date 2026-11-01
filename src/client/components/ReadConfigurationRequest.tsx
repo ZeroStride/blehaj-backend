@@ -7,19 +7,23 @@ import MarkdownStepper from "@components/MarkdownStepper"
 const steps = [
   {
     label: "Talking to Device",
-    description: `Getting the value from the GATT Characteristic. This is a request for configuration, signed with the device's
-                  <a href="https://en.wikipedia.org/wiki/EdDSA#Ed25519" target="_blank">Ed25519</a> signing key. The signature lets the server know that the message it gets passed is authentic, since
+    description: `Getting the value from the GATT Characteristic. 
+                  <br/><br/>
+                  This is a request for configuration, signed with the device's
+                  <a href="https://en.wikipedia.org/wiki/EdDSA#Ed25519" target="_blank">Ed25519</a> signing key.
+                  <br/><br/>
+                  The signature lets the server know that the message it gets passed is authentic, since
                   that message is going to be relayed via the Smartphone.`,
   },
   {
     label: "Passing Value to Server",
-    description: `The device is also sending along an <a href="https://en.wikipedia.org/wiki/ML-KEM" target="_blank">ML-KEM</a> encapsulation key. This will alllow the server to reply
-                  with an encrypted configuration, that cannot be read by the Smartphone which is relaying the data (or any other observer).`,
+    description: `The device is also sending along an <a href="https://en.wikipedia.org/wiki/ML-KEM" target="_blank">ML-KEM</a> encapsulation key.
+                  <br/><br/>
+                  This will alllow the server to reply with an encrypted configuration, that can only be read by the device itself.`,
   },
   {
     label: "Waiting for Reply",
-    description: `The server is processing from the device, and then it will tell the web app what information it needs from
-                        the user.`,
+    description: `The server is processing from the device, and then it will tell the web app what information it needs from the user.`,
   },
 ]
 
@@ -49,10 +53,16 @@ export default function ReadConfigurationRequest({
       .then((bytes) => wait(3000, bytes))
       .then((bytes) => {
         setActiveStep(1)
+        const headers = {
+          "Content-Type": "application/blehaj",
+        }
         return fetch("/api/configure", {
           method: "POST",
           headers: {
-            "Content-Type": "application/blehaj",
+            ...headers,
+            ...((characteristic as any)._emulated
+              ? { "X-Blehaj-Skip-Zstd": "true" }
+              : {}),
           },
           body: bytes,
         })

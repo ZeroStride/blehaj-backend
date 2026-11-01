@@ -27,7 +27,7 @@ export interface BlehajRequest {
 }
 
 export interface BlehajRequestType {
-  NetworkManagerConfiguration: { interface: string; public_key: Uint8Array }
+  NetworkManagerConfiguration: { interface: string; public_key?: Uint8Array }
 }
 
 export const contentTypeBlehaj = (options?: PluginOptions) =>
@@ -69,11 +69,18 @@ async function parseBlehaj(
   }
 
   const bodyAsArrayBuffer = await Bun.readableStreamToArrayBuffer(request.body!)
-  log
-    ?.withGroup("parser")
-    .withMetadata({ bodyLength: bodyAsArrayBuffer.byteLength })
-    .info("decompressing application/blehaj")
-  return Bun.zstdDecompress(bodyAsArrayBuffer)
+  var getDecompressedBody
+  if (request.headers.get("X-Blehaj-Skip-Zstd")) {
+    getDecompressedBody = Promise.resolve(bodyAsArrayBuffer)
+  } else {
+    log
+      ?.withGroup("parser")
+      .withMetadata({ bodyLength: bodyAsArrayBuffer.byteLength })
+      .info("decompressing application/blehaj")
+    getDecompressedBody = Bun.zstdDecompress(bodyAsArrayBuffer)
+  }
+
+  return getDecompressedBody
     .then((decompressed) => {
       log?.withGroup("parser").debug("decoding signed payload")
       return decodeMsgpack(decompressed) as SignedPayload

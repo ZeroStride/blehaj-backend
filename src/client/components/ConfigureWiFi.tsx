@@ -28,17 +28,23 @@ const steps = [
   },
   {
     label: "Sending WiFi info to Server",
-    description: `Now sending the WiFi information provided to the server. It will use the encapsulated key (that the device sent) 
-                  to create an encrypted configuration specifically for that device, that only it can read.`,
+    description: `Now sending the WiFi information provided to the server.
+                  <br/><br/>
+                  It will use the device's encapsulated key to create an encrypted configuration specifically for that device`,
   },
   {
     label: "Waiting for Reply",
-    description: `The server will also send along its own encapsulated key, and a signature, so that the device knows it comes from an authoritative source.`,
+    description: `The server will also sign the reply, so that the device knows the configuration comes from an authoritative source.`,
   },
   {
     label: "Passing Value to Device",
-    description: `The encryption is AES-256-GCM, using the shared secret from the ML-KEM exchange; and then signed using provisioned Ed25519 keys.
-                  Post-quantum secure, and authenticated communication.`,
+    description: `The encryption is AES-256-GCM
+                  <br/><br/>
+                  The key exchange is done using ML-KEM
+                  <br/><br/>
+                  Signing is done using provisioned Ed25519 keys
+                  <br/><br/>
+                  Secure, and authenticated configuration for devices, via an untrusted intermediary.`,
   },
 ]
 
@@ -93,7 +99,9 @@ export default function ConfigureWiFi({
       })
       .then((body) => wait(3000, body))
       .then((body) => writeChonked(body, characteristic!))
-      .then(() => {})
+      .then(() => {
+        setActiveStep(4)
+      })
       .then(() => wait(3000, null))
       .then(() => {
         onComplete?.call(null, {})
@@ -122,6 +130,21 @@ export default function ConfigureWiFi({
                 <Box sx={{ mb: 2 }}>
                   {index === 0 && (
                     <>
+                      {(characteristic as any)._emulated && (
+                        <Button
+                          variant="contained"
+                          color="warning"
+                          sx={{ mt: 1, mr: 1 }}
+                          onClick={async () => {
+                            await processWiFiInfo({
+                              ssid: "Karl Marx's Dysphoria Beard",
+                              security: "none",
+                            })
+                          }}
+                        >
+                          Just Fake Some Data
+                        </Button>
+                      )}
                       <Button
                         variant="contained"
                         disabled={true}
@@ -160,6 +183,21 @@ export default function ConfigureWiFi({
                         }}
                         sound={false}
                       />
+                      {(characteristic as any)._emulated && (
+                        <Button
+                          variant="contained"
+                          color="warning"
+                          sx={{ m: 1 }}
+                          onClick={async () => {
+                            await processWiFiInfo({
+                              ssid: "Karl Marx's Dysphoria Beard",
+                              security: "none",
+                            })
+                          }}
+                        >
+                          Just Fake Some Data
+                        </Button>
+                      )}
                     </Container>
                   )}
                 </Box>

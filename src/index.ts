@@ -20,15 +20,14 @@ interface Session {
 
 export const app = new Elysia()
   .use(
-    async () =>
-      // Future-ezri: Do not remove this 'await' it breaks shit
-      await staticPlugin({
-        bunFullstack: true,
-        prefix: "/",
-        headers: {},
-      })
+    // Future-ezri: Do not remove this 'await' it breaks shit
+    await staticPlugin({
+      bunFullstack: true,
+      prefix: "/",
+      headers: {},
+    })
   )
-  .get("/:uuid", index)
+  .get("/:uuid?", index)
   .use(elysiaLogLayer({ instance: log }))
   .group("/api", (app) =>
     app
@@ -68,18 +67,16 @@ export const app = new Elysia()
         const request = body as BlehajRequest
 
         if (!request.request.NetworkManagerConfiguration) {
-          return status(
-            422,
-            `Unable to process request type: ${request.request}`
-          )
+          return status(422, {
+            error: `Unable to process request type: ${request.request}`,
+          })
         }
         const configurationRequest = request.request.NetworkManagerConfiguration
 
         if (!configurationRequest.interface.startsWith("wlan")) {
-          return status(
-            422,
-            `Don't know how to configure ${configurationRequest.interface}`
-          )
+          return status(422, {
+            error: `Don't know how to configure ${configurationRequest.interface}`,
+          })
         }
 
         log

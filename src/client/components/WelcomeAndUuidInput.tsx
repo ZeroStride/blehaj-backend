@@ -2,14 +2,17 @@ import CloseIcon from "@mui/icons-material/Close"
 import QrCodeTwoToneIcon from "@mui/icons-material/QrCodeTwoTone"
 import {
   Alert,
+  Button,
   Container,
   Dialog,
   DialogTitle,
+  Divider,
   FormControl,
   IconButton,
   InputAdornment,
   InputLabel,
   OutlinedInput,
+  Stack,
 } from "@mui/material"
 import { Scanner, useDevices } from "@yudiel/react-qr-scanner"
 import { MuiMarkdown } from "mui-markdown"
@@ -39,7 +42,7 @@ const modalStyle = {
 export default function WelcomeAndUuidInput({
   onUuid,
 }: {
-  onUuid: (uuid: string, simulate?: boolean) => void
+  onUuid: (uuid: string, useEmulator: boolean) => void
 }) {
   const uuidInput = React.useId()
 
@@ -79,7 +82,7 @@ export default function WelcomeAndUuidInput({
                 try {
                   const uuid = uuidOrUndefined(result[i].rawValue)
                   if (uuid) {
-                    onUuid.call(null, uuid)
+                    onUuid.call(null, uuid, false)
                     break
                   }
                 } catch {}
@@ -89,7 +92,7 @@ export default function WelcomeAndUuidInput({
                   if (url.host === window.location.host) {
                     const uuid = uuidOrUndefined(url.pathname.split("/")[1])
                     if (uuid) {
-                      onUuid.call(null, uuid)
+                      onUuid.call(null, uuid, false)
                       break
                     }
                   }
@@ -100,65 +103,79 @@ export default function WelcomeAndUuidInput({
           />
         </Container>
       </Dialog>
-      <Container
-        component="form"
-        sx={{ textAlign: "right" }}
-        action={(formData) => {
-          const data = Object.fromEntries(formData.entries())
-          const uuid = uuidOrUndefined(data.uuid)
-          if (uuid) {
-            onUuid.call(null, uuid)
-          } else {
-            setError(true)
-          }
-        }}
-        noValidate
-        autoComplete="off"
-        autoCorrect="false"
-      >
-        <MuiMarkdown>{welcomeText}</MuiMarkdown>
-        <FormControl sx={{ m: 1 }} variant="outlined" fullWidth>
-          <InputLabel htmlFor={`${uuidInput}-input`}>Device UUID</InputLabel>
-          <OutlinedInput
-            onInput={() => {
-              error && setError(false)
-            }}
-            name="uuid"
-            id={`${uuidInput}-input`}
-            type={"text"}
-            endAdornment={
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label={"Scan QR Code"}
-                  onClick={() => setShowScanner(true)}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onMouseUp={(e) => e.preventDefault()}
-                  edge="end"
-                >
-                  {devices.length > 0 && <QrCodeTwoToneIcon />}
-                </IconButton>
-              </InputAdornment>
+      <Stack spacing={1}>
+        <Container
+          component="form"
+          sx={{ textAlign: "right" }}
+          action={(formData) => {
+            const data = Object.fromEntries(formData.entries())
+            const uuid = uuidOrUndefined(data.uuid)
+            if (uuid) {
+              onUuid.call(null, uuid, false)
+            } else {
+              setError(true)
             }
-            label="Service Uuid"
-          />
-          {error && (
-            <Alert severity="error" variant="outlined" sx={{ mt: 1 }}>
-              <MuiMarkdown>
-                Invalid UUID format. This value needs to be either a full UUID,
-                or a Bluetoooth Service value which is accepted by
-                <a
-                  href="https://developer.mozilla.org/en-US/docs/Web/API/BluetoothUUID/getService_static"
-                  target="_blank"
-                >
-                  BluetoothUUID.getService
-                </a>
-              </MuiMarkdown>
-            </Alert>
-          )}
-        </FormControl>
+          }}
+          noValidate
+          autoComplete="off"
+          autoCorrect="false"
+        >
+          <MuiMarkdown>{welcomeText}</MuiMarkdown>
+          <FormControl sx={{ m: 1 }} variant="outlined" fullWidth>
+            <InputLabel htmlFor={`${uuidInput}-input`}>Device UUID</InputLabel>
+            <OutlinedInput
+              onInput={() => {
+                error && setError(false)
+              }}
+              name="uuid"
+              id={`${uuidInput}-input`}
+              type={"text"}
+              endAdornment={
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={"Scan QR Code"}
+                    onClick={() => setShowScanner(true)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseUp={(e) => e.preventDefault()}
+                    edge="end"
+                  >
+                    {devices.length > 0 && <QrCodeTwoToneIcon />}
+                  </IconButton>
+                </InputAdornment>
+              }
+              label="Service Uuid"
+            />
+            {error && (
+              <Alert severity="error" variant="outlined" sx={{ mt: 1 }}>
+                <MuiMarkdown>
+                  Invalid UUID format. This value needs to be either a full
+                  UUID, or a Bluetoooth Service value which is accepted by
+                  <a
+                    href="https://developer.mozilla.org/en-US/docs/Web/API/BluetoothUUID/getService_static"
+                    target="_blank"
+                  >
+                    BluetoothUUID.getService
+                  </a>
+                </MuiMarkdown>
+              </Alert>
+            )}
+          </FormControl>
 
-        <input type="submit" hidden />
-      </Container>
+          <input type="submit" hidden />
+        </Container>
+        <Divider />
+        <Container sx={{ textAlign: "right" }}>
+          <Button
+            variant="outlined"
+            color="warning"
+            onClick={() => {
+              onUuid.call(null, crypto.randomUUID(), true)
+            }}
+          >
+            I just want to see how it works, use emulated functionality
+          </Button>
+        </Container>
+      </Stack>
     </>
   )
 }
