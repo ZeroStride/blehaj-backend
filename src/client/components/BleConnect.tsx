@@ -12,7 +12,7 @@ export interface BleConnectConfiguration {
   ) => void
   readonly onError: (error: Error) => void
   readonly noWaitMode: boolean
-  readonly useEmulator: boolean
+  readonly useEmulator?: boolean
 }
 
 interface BleConnectContext {
@@ -248,12 +248,13 @@ export default function BleConnect({
                   <Box>
                     {index === 0 && (
                       <Button
+                        color={useEmulator ? "warning" : "primary"}
                         variant="contained"
                         onClick={connect}
                         sx={{ mt: 1, mr: 1 }}
                         aria-label="connect"
                       >
-                        Connect
+                        Connect{useEmulator ? ` (Emulated)` : ``}
                       </Button>
                     )}
                   </Box>

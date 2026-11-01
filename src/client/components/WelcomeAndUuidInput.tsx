@@ -11,12 +11,15 @@ import {
   IconButton,
   InputAdornment,
   InputLabel,
+  LinearProgress,
   OutlinedInput,
   Stack,
 } from "@mui/material"
 import { Scanner, useDevices } from "@yudiel/react-qr-scanner"
 import { MuiMarkdown } from "mui-markdown"
 import React from "react"
+
+import PauseControl from "@components/PauseControl"
 
 export function uuidOrUndefined(uuid: string | null | undefined) {
   if (uuid) {
@@ -49,6 +52,7 @@ export default function WelcomeAndUuidInput({
   const devices = useDevices()
   const [showScanner, setShowScanner] = React.useState(false)
   const [error, setError] = React.useState(false)
+  const [showInstructions, setShowInstructions] = React.useState(false)
 
   const welcomeText = `
   #### welcome
@@ -103,7 +107,7 @@ export default function WelcomeAndUuidInput({
           />
         </Container>
       </Dialog>
-      <Stack spacing={1}>
+      <Stack spacing={1} divider={<Divider flexItem />}>
         <Container
           component="form"
           sx={{ textAlign: "right" }}
@@ -130,6 +134,7 @@ export default function WelcomeAndUuidInput({
               name="uuid"
               id={`${uuidInput}-input`}
               type={"text"}
+              disabled={showInstructions}
               endAdornment={
                 <InputAdornment position="end">
                   <IconButton
@@ -163,18 +168,48 @@ export default function WelcomeAndUuidInput({
 
           <input type="submit" hidden />
         </Container>
-        <Divider />
         <Container sx={{ textAlign: "right" }}>
           <Button
             variant="outlined"
+            disabled={showInstructions}
             color="warning"
             onClick={() => {
-              onUuid.call(null, crypto.randomUUID(), true)
+              setShowInstructions(true)
             }}
           >
             I just want to see how it works, use emulated functionality
           </Button>
         </Container>
+        {showInstructions && (
+          <Stack spacing={1}>
+            <LinearProgress
+              color={"warning"}
+              aria-label="Waiting..."
+              variant={"query"}
+            />
+            <Stack
+              direction={"row"}
+              sx={{ justifyContent: "flex-end", textAlign: "right" }}
+            >
+              <MuiMarkdown>
+                {`During the tour, you'll see waiting bars (like the one above)
+                that will give you a chance to read what's on the screen.
+                <br/><br/>
+                You can pause, and resume any time.
+                <br/><br/>
+                Press the
+                play icon to begin!`}
+              </MuiMarkdown>
+              <PauseControl
+                noWaitMode={false}
+                paused={true}
+                setPaused={() => {
+                  onUuid.call(null, crypto.randomUUID(), true)
+                }}
+              />
+            </Stack>
+          </Stack>
+        )}
       </Stack>
     </>
   )
