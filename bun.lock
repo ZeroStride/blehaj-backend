@@ -291,7 +291,7 @@
 
     "@upsetjs/venn.js": ["@upsetjs/venn.js@2.0.0", "", { "optionalDependencies": { "d3-selection": "^3.0.0", "d3-transition": "^3.0.1" } }, "sha512-WbBhLrooyePuQ1VZxrJjtLvTc4NVfpOyKx0sKqioq9bX1C1m7Jgykkn8gLrtwumBioXIqam8DLxp88Adbue6Hw=="],
 
-    "@xstate/react": ["@xstate/react@7.0.0-alpha.6", "", { "dependencies": { "use-isomorphic-layout-effect": "^1.1.2", "use-sync-external-store": "^1.2.0" }, "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "xstate": "^6.0.0-alpha.70" } }, "sha512-y37nGhcgEPEB6DzLr9/Z70oQ5cjZ5ZKc+TJgSHvf0WYeFdo2sk+PGk45Pi7hwZ9p37vxN7eFgLqy5yhksd89AQ=="],
+    "@xstate/react": ["@xstate/react@7.0.0-alpha.7", "", { "dependencies": { "use-isomorphic-layout-effect": "^1.1.2", "use-sync-external-store": "^1.2.0" }, "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "xstate": "^6.0.0-alpha.73" } }, "sha512-Pg3d75LrRn+UnY12LT8n6UQYvIOTw1xe9h5o6O6yG+0GQR0dCU06yD/0+9FR/vu7Zyvgs6ATK5wQBYAmATTw7w=="],
 
     "@yudiel/react-qr-scanner": ["@yudiel/react-qr-scanner@2.6.0", "", { "dependencies": { "barcode-detector": "^3.1.3", "webrtc-adapter": "^9.0.5" }, "peerDependencies": { "react": "^17 || ^18 || ^19", "react-dom": "^17 || ^18 || ^19" } }, "sha512-WjNcSt7qquYUz1LVbwKzSnRQI47sNrh4Vh6nNiGKVxnYcP+KgN5q9rcSzXyZ/7GRV9PPrnzoIuE5YdOxB9yAog=="],
 
