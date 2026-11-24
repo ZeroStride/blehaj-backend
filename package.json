@@ -24,7 +24,7 @@
     "@yudiel/react-qr-scanner": "^2.6.0",
     "elysia": "latest",
     "loglayer": "^9.4.0",
-    "mlkem": "^2.7.0",
+    "mlkem": "^2.7.1",
     "mui-markdown": "^3.0.1",
     "pino": "^10.4.0",
     "react": "^19.3.1",

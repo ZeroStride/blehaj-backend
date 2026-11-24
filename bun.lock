@@ -20,7 +20,7 @@
         "@yudiel/react-qr-scanner": "^2.6.0",
         "elysia": "latest",
         "loglayer": "^9.4.0",
-        "mlkem": "^2.7.0",
+        "mlkem": "^2.7.1",
         "mui-markdown": "^3.0.1",
         "pino": "^10.4.0",
         "react": "^19.3.1",
@@ -487,7 +487,7 @@
 
     "mermaid": ["mermaid@11.17.2", "", { "dependencies": { "@braintree/sanitize-url": "^7.1.2", "@iconify/utils": "^3.0.2", "@mermaid-js/parser": "^1.2.1", "@types/d3": "^7.4.3", "@upsetjs/venn.js": "^2.0.0", "cytoscape": "^3.34.0", "cytoscape-cose-bilkent": "^4.1.0", "cytoscape-fcose": "^2.2.0", "d3": "^7.9.0", "d3-sankey": "^0.12.3", "dagre-d3-es": "7.0.14", "dayjs": "^1.11.21", "dompurify": "^3.3.3", "es-toolkit": "^1.45.1", "fastdom": "1.0.12", "katex": "^0.16.47", "khroma": "^2.1.0", "marked": "^16.3.0", "roughjs": "^4.6.6", "stylis": "^4.3.6", "ts-dedent": "^2.2.0", "uuid": "^11.1.0 || ^12 || ^13 || ^14.0.0" } }, "sha512-V6K3C8EBdEsPFZXSKMJe6ppQOENxuHARr9GvHX4hh47lAbhMRD9qf4oEK7LoaRQxULMa80/qt5gHO73aCleBBg=="],
 
-    "mlkem": ["mlkem@2.7.0", "", {}, "sha512-I2bcB5d6jtkdan6MLGOxObpUbidqv0ej+PhbCGnXUqmcGYZ6X8F0qBpU6HE4mvYc81NSznBrVDp+Uc808Ba2RA=="],
+    "mlkem": ["mlkem@2.7.1", "", {}, "sha512-sPA7RwFL0U8Bo+4bIdXM4z2Um8tpU0enHjblg43QGwQtPbclcvAvSoAji88dS6fkqAIQHuac9DAbtEKg1t0LZw=="],
 
     "ms": ["ms@2.1.3", "", {}, "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA=="],
 
